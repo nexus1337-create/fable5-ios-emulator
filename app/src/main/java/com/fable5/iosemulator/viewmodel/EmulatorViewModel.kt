@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fable5.iosemulator.model.AppCatalog
@@ -52,10 +53,15 @@ class EmulatorViewModel : ViewModel() {
         private set
     var openedFolderKey by mutableStateOf<String?>(null)
 
+    /** Точка на экране, из которой «вырастает» открываемое приложение. */
+    var launchOrigin by mutableStateOf<Offset?>(null)
+        private set
+
     /** Недавние приложения для App Switcher (первый — самый свежий). */
     val recentApps = mutableStateListOf<AppId>()
 
-    fun openApp(id: AppId) {
+    fun openApp(id: AppId, origin: Offset? = null) {
+        launchOrigin = origin
         openedApp = id
         switcherVisible = false
         openedFolderKey = null

@@ -26,20 +26,49 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fable5.iosemulator.model.AppId
 import com.fable5.iosemulator.model.HomeItem
 import com.fable5.iosemulator.model.IosApp
 
 /**
- * Визуал иконки приложения: скруглённый квадрат с градиентом
+ * Визуал иконки приложения: скруглённый квадрат
  * (радиус ≈ 22,37% стороны — как суперэллипс иконок iOS).
+ * Самые узнаваемые иконки нарисованы вручную на Canvas (IosAppIcons.kt),
+ * остальные — Material-вектор на вертикальном градиенте.
  */
 @Composable
 fun AppIconVisual(app: IosApp, size: Dp = 60.dp) {
     Box(
         modifier = Modifier
             .size(size)
-            .clip(RoundedCornerShape(size * 0.2237f))
-            .background(Brush.linearGradient(app.gradient)),
+            .clip(RoundedCornerShape(size * 0.2237f)),
+        contentAlignment = Alignment.Center
+    ) {
+        when (app.id) {
+            AppId.SAFARI -> SafariIcon()
+            AppId.PHOTOS -> PhotosIcon()
+            AppId.CLOCK -> ClockIcon()
+            AppId.CALENDAR -> CalendarIcon(size)
+            AppId.NOTES -> NotesIcon()
+            AppId.CALCULATOR -> CalculatorIcon()
+            AppId.APP_STORE -> AppStoreIcon()
+            AppId.MAIL -> MailIcon()
+            AppId.WEATHER -> WeatherIcon()
+            AppId.MAPS -> MapsIcon()
+            AppId.WALLET -> WalletIcon()
+            AppId.STOCKS -> StocksIcon()
+            else -> DefaultAppIcon(app, size)
+        }
+    }
+}
+
+/** Иконка по умолчанию: вертикальный градиент + векторный символ. */
+@Composable
+private fun DefaultAppIcon(app: IosApp, size: Dp) {
+    Box(
+        modifier = Modifier
+            .size(size)
+            .background(Brush.verticalGradient(app.gradient)),
         contentAlignment = Alignment.Center
     ) {
         Icon(
@@ -92,7 +121,7 @@ fun HomeItemView(item: HomeItem, iconSize: Dp = 60.dp, labelColor: Color = Color
         Text(
             text = label,
             style = TextStyle(
-                fontSize = 12.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
                 color = labelColor,
                 shadow = Shadow(

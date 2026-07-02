@@ -2,14 +2,17 @@ package com.fable5.iosemulator.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,7 +39,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -93,9 +101,9 @@ fun HomeScreen(vm: EmulatorViewModel, modifier: Modifier = Modifier) {
                             items = vm.pages[page],
                             onMove = { from, to -> vm.moveItem(page, from, to) },
                             onMerge = { from, to -> vm.mergeItems(page, from, to) },
-                            onItemTap = { index ->
+                            onItemTap = { index, center ->
                                 when (val item = vm.pages[page].getOrNull(index)) {
-                                    is HomeItem.App -> vm.openApp(item.app.id)
+                                    is HomeItem.App -> vm.openApp(item.app.id, center)
                                     is HomeItem.Folder -> vm.openedFolderKey = item.key
                                     null -> Unit
                                 }
@@ -172,13 +180,19 @@ private fun HomeWidgets() {
     }
 }
 
-/** Полупрозрачная карточка-виджет (имитация материала iOS). */
+/** Полупрозрачная «стеклянная» карточка-виджет (материал iOS). */
 @Composable
 private fun WidgetCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    val shape = RoundedCornerShape(24.dp)
     Box(
         modifier
-            .clip(RoundedCornerShape(24.dp))
-            .background(Color.Black.copy(alpha = 0.28f))
+            .clip(shape)
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color.Black.copy(alpha = 0.34f), Color.Black.copy(alpha = 0.22f))
+                )
+            )
+            .border(1.dp, Color.White.copy(alpha = 0.16f), shape)
     ) {
         content()
     }
@@ -208,28 +222,60 @@ private fun PageDots(current: Int, count: Int) {
     }
 }
 
-/** Док с четырьмя основными приложениями. */
+/** «Стеклянный» док с четырьмя основными приложениями. */
 @Composable
 private fun Dock(vm: EmulatorViewModel) {
+    val shape = RoundedCornerShape(38.dp)
     Row(
         Modifier
             .padding(horizontal = 12.dp)
             .fillMaxWidth()
-            .clip(RoundedCornerShape(36.dp))
-            .background(Color.White.copy(alpha = 0.22f))
+            .clip(shape)
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color.White.copy(alpha = 0.30f), Color.White.copy(alpha = 0.16f))
+                )
+            )
+            .border(1.dp, Color.White.copy(alpha = 0.22f), shape)
             .padding(vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         vm.dockApps.forEach { app ->
-            Box(
-                Modifier.clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) { vm.openApp(app.id) }
-            ) {
-                AppIconVisual(app)
-            }
+            DockIcon(app = app, onTap = { center -> vm.openApp(app.id, center) })
         }
+    }
+}
+
+/** Иконка дока: эффект нажатия + передача позиции для анимации запуска. */
+@Composable
+private fun DockIcon(
+    app: com.fable5.iosemulator.model.IosApp,
+    onTap: (Offset) -> Unit
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (pressed) 0.88f else 1f,
+        animationSpec = tween(120),
+        label = "dockPress"
+    )
+    var center by remember { mutableStateOf(Offset.Zero) }
+    Box(
+        Modifier
+            .graphicsLayer {
+                scaleX = pressScale
+                scaleY = pressScale
+            }
+            .onGloballyPositioned { coordinates ->
+                val position = coordinates.positionInRoot()
+                center = Offset(
+                    position.x + coordinates.size.width / 2f,
+                    position.y + coordinates.size.height / 2f
+                )
+            }
+            .clickable(interactionSource = interaction, indication = null) { onTap(center) }
+    ) {
+        AppIconVisual(app)
     }
 }
 
@@ -259,10 +305,16 @@ private fun FolderOverlay(
                 textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(22.dp))
+            val folderShape = RoundedCornerShape(40.dp)
             Box(
                 Modifier
-                    .clip(RoundedCornerShape(40.dp))
-                    .background(Color.White.copy(alpha = 0.3f))
+                    .clip(folderShape)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color.White.copy(alpha = 0.38f), Color.White.copy(alpha = 0.24f))
+                        )
+                    )
+                    .border(1.dp, Color.White.copy(alpha = 0.25f), folderShape)
                     .padding(26.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {

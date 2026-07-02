@@ -4,19 +4,20 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -28,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -63,10 +65,30 @@ fun EmulatorRoot(vm: EmulatorViewModel) {
             animationSpec = tween(300),
             label = "switcherBlur"
         )
+        // Прогресс запуска приложения: 0 — закрыто, 1 — открыто
+        val appProgress by animateFloatAsState(
+            targetValue = if (vm.openedApp != null) 1f else 0f,
+            animationSpec = tween(
+                durationMillis = if (vm.openedApp != null) 380 else 300,
+                easing = FastOutSlowInEasing
+            ),
+            label = "appLaunch"
+        )
 
         Box(Modifier.fillMaxSize().background(Color.Black)) {
             // ---------- 1. Домашний экран ----------
-            HomeScreen(vm, Modifier.blur(homeBlur))
+            // При запуске приложения home слегка «улетает» вглубь, как в iOS
+            HomeScreen(
+                vm,
+                Modifier
+                    .graphicsLayer {
+                        val zoom = 1f + 0.1f * appProgress
+                        scaleX = zoom
+                        scaleY = zoom
+                        alpha = 1f - 0.4f * appProgress
+                    }
+                    .blur(homeBlur)
+            )
 
             // ---------- 2. App Switcher ----------
             AnimatedVisibility(
@@ -90,20 +112,34 @@ fun EmulatorRoot(vm: EmulatorViewModel) {
             SideEffect {
                 if (vm.openedApp != null) lastApp = vm.openedApp
             }
-            AnimatedVisibility(
-                visible = vm.openedApp != null,
-                enter = scaleIn(
-                    initialScale = 0.82f,
-                    animationSpec = tween(320, easing = FastOutSlowInEasing)
-                ) + fadeIn(tween(220)),
-                exit = scaleOut(
-                    targetScale = 0.86f,
-                    animationSpec = tween(260, easing = FastOutSlowInEasing)
-                ) + fadeOut(tween(200))
-            ) {
+            // Приложение «вырастает» из иконки, по которой нажали,
+            // и «сворачивается» обратно в неё при выходе — как в iOS
+            if (appProgress > 0.001f) {
                 val appToShow = vm.openedApp ?: lastApp
                 if (appToShow != null) {
-                    AppScreenHost(appId = appToShow, vm = vm, modifier = Modifier.fillMaxSize())
+                    BoxWithConstraints(Modifier.fillMaxSize()) {
+                        val rootWidth = constraints.maxWidth.toFloat()
+                        val rootHeight = constraints.maxHeight.toFloat()
+                        val origin = vm.launchOrigin
+                        Box(
+                            Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    val scale = 0.15f + 0.85f * appProgress
+                                    scaleX = scale
+                                    scaleY = scale
+                                    if (origin != null) {
+                                        translationX = (origin.x - rootWidth / 2f) * (1f - appProgress)
+                                        translationY = (origin.y - rootHeight / 2f) * (1f - appProgress)
+                                    }
+                                    alpha = (appProgress * 2.5f).coerceAtMost(1f)
+                                    clip = true
+                                    shape = RoundedCornerShape(((1f - appProgress) * 44f).dp)
+                                }
+                        ) {
+                            AppScreenHost(appId = appToShow, vm = vm, modifier = Modifier.fillMaxSize())
+                        }
+                    }
                 }
             }
 

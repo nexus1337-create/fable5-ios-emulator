@@ -62,16 +62,43 @@ sealed class HomeItem {
     }
 }
 
-/** Обои домашнего экрана (градиенты в духе стандартных обоев iOS). */
-data class Wallpaper(val name: String, val colors: List<Color>)
+/**
+ * Обои домашнего экрана: вертикальный базовый градиент + цветные
+ * «пятна» (имитация mesh-градиентов стандартных обоев iOS 18).
+ */
+data class Wallpaper(
+    val name: String,
+    val base: List<Color>,
+    val blobs: List<Color>
+)
 
 object Wallpapers {
     val all = listOf(
-        Wallpaper("Fable", listOf(Color(0xFF16255C), Color(0xFF5A2E9E), Color(0xFFD75792))),
-        Wallpaper("Рассвет", listOf(Color(0xFF2E1371), Color(0xFFF54EA2), Color(0xFFFF9B44))),
-        Wallpaper("Океан", listOf(Color(0xFF0B1E3D), Color(0xFF1B5E8F), Color(0xFF35B5AC))),
-        Wallpaper("Аврора", listOf(Color(0xFF0F2027), Color(0xFF2C5364), Color(0xFF37D0A0))),
-        Wallpaper("Графит", listOf(Color(0xFF17181A), Color(0xFF3B3E45), Color(0xFF63666E)))
+        Wallpaper(
+            "Fable",
+            base = listOf(Color(0xFF0A1442), Color(0xFF35156B), Color(0xFF6A2C91)),
+            blobs = listOf(Color(0xFFFF6AC1), Color(0xFF45C4FF), Color(0xFFFF9F5A), Color(0xFF7B61FF))
+        ),
+        Wallpaper(
+            "Закат",
+            base = listOf(Color(0xFF23104F), Color(0xFF7A2E62), Color(0xFFDF6B4F)),
+            blobs = listOf(Color(0xFFFF4E8E), Color(0xFFFFC371), Color(0xFFFF7A59), Color(0xFF8E4EC6))
+        ),
+        Wallpaper(
+            "Лагуна",
+            base = listOf(Color(0xFF04293F), Color(0xFF0A4D6E), Color(0xFF0E7490)),
+            blobs = listOf(Color(0xFF34D3C8), Color(0xFF7DE1FF), Color(0xFF1F6FEB), Color(0xFF37F5C6))
+        ),
+        Wallpaper(
+            "Аврора",
+            base = listOf(Color(0xFF061A2B), Color(0xFF0D3242), Color(0xFF123B2F)),
+            blobs = listOf(Color(0xFF3EE58F), Color(0xFF37C3FF), Color(0xFF7B61FF), Color(0xFF1FE0C4))
+        ),
+        Wallpaper(
+            "Графит",
+            base = listOf(Color(0xFF0B0C0F), Color(0xFF1B1D22), Color(0xFF2E3138)),
+            blobs = listOf(Color(0xFF5A5F6A), Color(0xFF8A93A5), Color(0xFF3C414B), Color(0xFF6E7684))
+        )
     )
 }
 
