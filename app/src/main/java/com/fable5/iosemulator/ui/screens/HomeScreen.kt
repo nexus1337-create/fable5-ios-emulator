@@ -28,6 +28,9 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -121,7 +124,8 @@ fun HomeScreen(vm: EmulatorViewModel, modifier: Modifier = Modifier) {
                     }
                 }
 
-                PageDots(current = pagerState.currentPage, count = vm.pages.size)
+                SearchPill(onTap = { vm.spotlightVisible = true })
+                Spacer(Modifier.height(12.dp))
                 Dock(vm)
                 Spacer(Modifier.height(34.dp)) // место под Home Indicator
             }
@@ -207,26 +211,33 @@ private fun WidgetCard(modifier: Modifier = Modifier, content: @Composable () ->
     }
 }
 
-/** Точки-индикаторы страниц. */
+/** Капсула «Поиск» над доком — как в iOS 26/27. */
 @Composable
-private fun PageDots(current: Int, count: Int) {
+private fun SearchPill(onTap: () -> Unit) {
     Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
+        Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center
     ) {
-        repeat(count) { index ->
-            Box(
-                Modifier
-                    .padding(horizontal = 4.dp)
-                    .size(7.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (index == current) Color.White
-                        else Color.White.copy(alpha = 0.35f)
-                    )
+        Row(
+            Modifier
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.24f))
+                .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { onTap() }
+                .padding(horizontal = 16.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Search,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(14.dp)
             )
+            Spacer(Modifier.width(5.dp))
+            Text("Поиск", color = Color.White, fontSize = 13.sp)
         }
     }
 }

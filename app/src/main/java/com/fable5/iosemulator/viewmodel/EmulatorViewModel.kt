@@ -45,10 +45,12 @@ class EmulatorViewModel : ViewModel() {
     var locked by mutableStateOf(true)
         private set
     var controlCenterVisible by mutableStateOf(false)
+    var spotlightVisible by mutableStateOf(false)
     var brightness by mutableStateOf(0.8f)
     var volume by mutableStateOf(0.55f)
     var flashlightOn by mutableStateOf(false)
     var focusMode by mutableStateOf(false)
+    var muted by mutableStateOf(false)
 
     fun unlock() {
         locked = false
@@ -89,6 +91,7 @@ class EmulatorViewModel : ViewModel() {
         switcherVisible = false
         openedFolderKey = null
         controlCenterVisible = false
+        spotlightVisible = false
         recentApps.remove(id)
         recentApps.add(0, id)
         // Держим не больше шести карточек в переключателе
@@ -100,6 +103,7 @@ class EmulatorViewModel : ViewModel() {
         switcherVisible = false
         openedFolderKey = null
         controlCenterVisible = false
+        spotlightVisible = false
     }
 
     fun showSwitcher() {

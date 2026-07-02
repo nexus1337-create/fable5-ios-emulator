@@ -21,13 +21,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AirplanemodeActive
+import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Bluetooth
-import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.FlashlightOn
+import androidx.compose.material.icons.filled.NotificationsOff
+import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SignalCellularAlt
@@ -46,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -80,12 +83,46 @@ fun ControlCenterOverlay(vm: EmulatorViewModel, onDismiss: () -> Unit) {
             Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .padding(top = StatusBarHeight + 12.dp)
+                .padding(top = 14.dp)
                 .padding(horizontal = 14.dp)
                 // Тапы внутри панели не закрывают Пункт управления
                 .pointerInput(Unit) { detectTapGestures { } },
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            // ---------- Верхний ряд: «+» и питание, как в iOS 27 ----------
+            Row(Modifier.fillMaxWidth()) {
+                SmallCircleButton(Icons.Filled.Add)
+                Spacer(Modifier.weight(1f))
+                SmallCircleButton(Icons.Filled.PowerSettingsNew)
+            }
+            // ---------- Строка статуса внутри Пункта управления ----------
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.SignalCellularAlt,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.size(6.dp))
+                Icon(
+                    imageVector = Icons.Filled.Wifi,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.weight(1f))
+                Text("100 %", color = Color.White, fontSize = 14.sp)
+                Spacer(Modifier.size(5.dp))
+                Icon(
+                    imageVector = Icons.Filled.BatteryFull,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp).graphicsLayer { rotationZ = 90f }
+                )
+            }
             // ---------- Связь + плеер ----------
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 GlassModule(Modifier.weight(1f).aspectRatio(1f)) {
@@ -95,57 +132,107 @@ fun ControlCenterOverlay(vm: EmulatorViewModel, onDismiss: () -> Unit) {
                     MusicModule(vm)
                 }
             }
-            // ---------- Ползунки + быстрые действия ----------
+            // ---------- Камера/без звука/фонарик + Фокус + ползунки ----------
             Row(
                 Modifier.height(178.dp),
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                VerticalSlider(
-                    value = vm.brightness,
-                    onChange = { vm.brightness = it },
-                    icon = Icons.Filled.WbSunny,
-                    modifier = Modifier.weight(1f)
-                )
-                VerticalSlider(
-                    value = vm.volume,
-                    onChange = { vm.volume = it },
-                    icon = Icons.Filled.VolumeUp,
-                    modifier = Modifier.weight(1f)
-                )
                 Column(
-                    Modifier.weight(1.4f).fillMaxHeight(),
-                    verticalArrangement = Arrangement.SpaceEvenly,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    Modifier.weight(1.5f).fillMaxHeight(),
+                    verticalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        CcRoundButton(icon = Icons.Filled.CameraAlt, active = false) {
+                            vm.openApp(AppId.CAMERA)
+                        }
+                        CcRoundButton(
+                            icon = Icons.Filled.NotificationsOff,
+                            active = vm.muted,
+                            activeColor = Color(0xFFE85D5D)
+                        ) { vm.muted = !vm.muted }
                         CcRoundButton(
                             icon = Icons.Filled.FlashlightOn,
                             active = vm.flashlightOn,
                             activeColor = Color.White
                         ) { vm.flashlightOn = !vm.flashlightOn }
-                        CcRoundButton(
-                            icon = Icons.Filled.Bedtime,
-                            active = vm.focusMode,
-                            activeColor = IosIndigo
-                        ) { vm.focusMode = !vm.focusMode }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        CcRoundButton(icon = Icons.Filled.Calculate, active = false) {
-                            vm.openApp(AppId.CALCULATOR)
-                        }
-                        CcRoundButton(icon = Icons.Filled.CameraAlt, active = false) {
-                            vm.openApp(AppId.CAMERA)
+                    // Модуль «Фокусирование», как в ките (Title/Detail)
+                    GlassModule(Modifier.fillMaxWidth().height(64.dp)) {
+                        Row(
+                            Modifier.fillMaxSize().padding(horizontal = 14.dp)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { vm.focusMode = !vm.focusMode },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                Modifier
+                                    .size(38.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (vm.focusMode) IosIndigo
+                                        else Color.White.copy(alpha = 0.2f)
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Bedtime,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(Modifier.size(10.dp))
+                            Column {
+                                Text(
+                                    "Фокусирование",
+                                    color = Color.White,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    if (vm.focusMode) "Вкл." else "Выкл.",
+                                    color = Color.White.copy(alpha = 0.6f),
+                                    fontSize = 12.sp
+                                )
+                            }
                         }
                     }
                 }
+                VerticalSlider(
+                    value = vm.brightness,
+                    onChange = { vm.brightness = it },
+                    icon = Icons.Filled.WbSunny,
+                    modifier = Modifier.weight(0.75f)
+                )
+                VerticalSlider(
+                    value = vm.volume,
+                    onChange = { vm.volume = it },
+                    icon = Icons.Filled.VolumeUp,
+                    modifier = Modifier.weight(0.75f)
+                )
             }
-            Text(
-                text = "Смахните вверх, чтобы закрыть",
-                color = Color.White.copy(alpha = 0.55f),
-                fontSize = 12.sp,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
         }
+    }
+}
+
+/** Маленькая круглая кнопка верхнего ряда («+», питание). */
+@Composable
+private fun SmallCircleButton(icon: ImageVector) {
+    Box(
+        Modifier
+            .size(38.dp)
+            .clip(CircleShape)
+            .background(Color.White.copy(alpha = 0.2f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(19.dp)
+        )
     }
 }
 

@@ -51,6 +51,7 @@ import com.fable5.iosemulator.ui.screens.MessagesScreen
 import com.fable5.iosemulator.ui.screens.PhotosScreen
 import com.fable5.iosemulator.ui.screens.SafariScreen
 import com.fable5.iosemulator.ui.screens.SettingsScreen
+import com.fable5.iosemulator.ui.screens.SpotlightOverlay
 import com.fable5.iosemulator.ui.theme.Fable5Theme
 import com.fable5.iosemulator.viewmodel.EmulatorViewModel
 
@@ -65,11 +66,15 @@ import com.fable5.iosemulator.viewmodel.EmulatorViewModel
 @Composable
 fun EmulatorRoot(vm: EmulatorViewModel) {
     Fable5Theme(darkTheme = vm.darkTheme) {
-        // Блюр домашнего экрана, когда открыт App Switcher
+        // Блюр домашнего экрана под App Switcher, Пунктом управления и Spotlight
         val homeBlur by animateDpAsState(
-            targetValue = if (vm.switcherVisible) 24.dp else 0.dp,
+            targetValue = if (vm.switcherVisible || vm.controlCenterVisible || vm.spotlightVisible) {
+                24.dp
+            } else {
+                0.dp
+            },
             animationSpec = tween(300),
-            label = "switcherBlur"
+            label = "overlayBlur"
         )
         // Прогресс запуска приложения: 0 — закрыто, 1 — открыто
         val appProgress by animateFloatAsState(
@@ -155,6 +160,15 @@ fun EmulatorRoot(vm: EmulatorViewModel) {
                         }
                     }
                 }
+            }
+
+            // ---------- 3.4 Spotlight-поиск ----------
+            AnimatedVisibility(
+                visible = vm.spotlightVisible,
+                enter = fadeIn(tween(200)),
+                exit = fadeOut(tween(160))
+            ) {
+                SpotlightOverlay(vm) { vm.spotlightVisible = false }
             }
 
             // ---------- 3.5 Пункт управления ----------
@@ -261,10 +275,12 @@ fun EmulatorRoot(vm: EmulatorViewModel) {
             // Системная кнопка «Назад» ведёт себя как жест «домой»
             BackHandler(
                 enabled = vm.openedApp != null || vm.switcherVisible ||
-                    vm.openedFolderKey != null || vm.controlCenterVisible
+                    vm.openedFolderKey != null || vm.controlCenterVisible ||
+                    vm.spotlightVisible
             ) {
                 when {
                     vm.controlCenterVisible -> vm.controlCenterVisible = false
+                    vm.spotlightVisible -> vm.spotlightVisible = false
                     vm.openedFolderKey != null -> vm.openedFolderKey = null
                     else -> vm.goHome()
                 }

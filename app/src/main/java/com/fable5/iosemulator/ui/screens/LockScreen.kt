@@ -100,37 +100,50 @@ fun LockScreen(vm: EmulatorViewModel, modifier: Modifier = Modifier) {
             Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(Modifier.height(StatusBarHeight + 26.dp))
+            Spacer(Modifier.height(StatusBarHeight + 18.dp))
             Icon(
                 imageVector = Icons.Filled.Lock,
                 contentDescription = null,
                 tint = Color.White.copy(alpha = 0.9f),
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(19.dp)
             )
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(10.dp))
+            // Компоновка как в ките iOS 27: небольшая дата
+            // над огромными полупрозрачными часами
             Text(
                 text = date,
                 color = Color.White.copy(alpha = 0.92f),
-                fontSize = 17.sp,
+                fontSize = 21.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
                 text = time,
-                color = Color.White,
-                fontSize = 88.sp,
+                color = Color.White.copy(alpha = 0.95f),
+                fontSize = 96.sp,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = (-2).sp
+                letterSpacing = (-3).sp
             )
-            Spacer(Modifier.height(26.dp))
+            Spacer(Modifier.height(6.dp))
+            // Мини-виджеты под часами (погода и будильник)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                LockWidgetChip("⛅ 21°  Макс. 24°")
+                LockWidgetChip("⏰ 7:30")
+            }
+        }
 
-            // Уведомления
+        // Уведомления — внизу, над кнопками (как в iOS)
+        Column(
+            Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 176.dp)
+        ) {
             LockNotification(
                 app = AppCatalog[AppId.MESSAGES],
                 title = "Аня",
                 message = "Dynamic Island вообще огонь 🔥",
                 time = "9:43"
             )
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(8.dp))
             LockNotification(
                 app = AppCatalog[AppId.MAIL],
                 title = "Команда Fable",
@@ -144,7 +157,7 @@ fun LockScreen(vm: EmulatorViewModel, modifier: Modifier = Modifier) {
             Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(horizontal = 52.dp, vertical = 92.dp),
+                .padding(horizontal = 52.dp, vertical = 78.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             LockRoundButton(
@@ -161,15 +174,20 @@ fun LockScreen(vm: EmulatorViewModel, modifier: Modifier = Modifier) {
                 }
             )
         }
+    }
+}
 
-        Text(
-            text = "Смахните вверх, чтобы открыть",
-            color = Color.White.copy(alpha = 0.7f),
-            fontSize = 13.sp,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 46.dp)
-        )
+/** Мини-виджет под часами (капсула со «стеклом»). */
+@Composable
+private fun LockWidgetChip(text: String) {
+    Box(
+        Modifier
+            .clip(CircleShape)
+            .background(Color.White.copy(alpha = 0.18f))
+            .border(1.dp, Color.White.copy(alpha = 0.14f), CircleShape)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        Text(text, color = Color.White.copy(alpha = 0.9f), fontSize = 13.sp)
     }
 }
 

@@ -72,8 +72,21 @@ data class Wallpaper(
     val blobs: List<Color>
 )
 
+/** Бейджи непрочитанных на иконках (как в iOS). */
+object AppBadges {
+    val counts: Map<AppId, Int> = mapOf(
+        AppId.MESSAGES to 2,
+        AppId.MAIL to 5
+    )
+}
+
 object Wallpapers {
     val all = listOf(
+        Wallpaper(
+            "Шёлк",
+            base = listOf(Color(0xFF3E3730), Color(0xFF8F8478), Color(0xFFD8CDC0)),
+            blobs = listOf(Color(0xFFEFE0C8), Color(0xFF9AA6B5), Color(0xFFC2A98C), Color(0xFF60564A))
+        ),
         Wallpaper(
             "Fable",
             base = listOf(Color(0xFF0A1442), Color(0xFF35156B), Color(0xFF6A2C91)),

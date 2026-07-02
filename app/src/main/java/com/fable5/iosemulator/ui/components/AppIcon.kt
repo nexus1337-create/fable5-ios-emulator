@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -26,6 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fable5.iosemulator.model.AppBadges
 import com.fable5.iosemulator.model.AppId
 import com.fable5.iosemulator.model.HomeItem
 import com.fable5.iosemulator.model.IosApp
@@ -37,27 +40,49 @@ import com.fable5.iosemulator.model.IosApp
  * остальные — Material-вектор на вертикальном градиенте.
  */
 @Composable
-fun AppIconVisual(app: IosApp, size: Dp = 60.dp) {
-    Box(
-        modifier = Modifier
-            .size(size)
-            .clip(RoundedCornerShape(size * 0.2237f)),
-        contentAlignment = Alignment.Center
-    ) {
-        when (app.id) {
-            AppId.SAFARI -> SafariIcon()
-            AppId.PHOTOS -> PhotosIcon()
-            AppId.CLOCK -> ClockIcon()
-            AppId.CALENDAR -> CalendarIcon(size)
-            AppId.NOTES -> NotesIcon()
-            AppId.CALCULATOR -> CalculatorIcon()
-            AppId.APP_STORE -> AppStoreIcon()
-            AppId.MAIL -> MailIcon()
-            AppId.WEATHER -> WeatherIcon()
-            AppId.MAPS -> MapsIcon()
-            AppId.WALLET -> WalletIcon()
-            AppId.STOCKS -> StocksIcon()
-            else -> DefaultAppIcon(app, size)
+fun AppIconVisual(app: IosApp, size: Dp = 60.dp, showBadge: Boolean = false) {
+    Box(Modifier.size(size)) {
+        Box(
+            modifier = Modifier
+                .size(size)
+                .clip(RoundedCornerShape(size * 0.2237f)),
+            contentAlignment = Alignment.Center
+        ) {
+            when (app.id) {
+                AppId.SAFARI -> SafariIcon()
+                AppId.PHOTOS -> PhotosIcon()
+                AppId.CLOCK -> ClockIcon()
+                AppId.CALENDAR -> CalendarIcon(size)
+                AppId.NOTES -> NotesIcon()
+                AppId.CALCULATOR -> CalculatorIcon()
+                AppId.APP_STORE -> AppStoreIcon()
+                AppId.MAIL -> MailIcon()
+                AppId.WEATHER -> WeatherIcon()
+                AppId.MAPS -> MapsIcon()
+                AppId.WALLET -> WalletIcon()
+                AppId.STOCKS -> StocksIcon()
+                else -> DefaultAppIcon(app, size)
+            }
+        }
+        // Красный бейдж непрочитанных, как в iOS
+        val badgeCount = if (showBadge) AppBadges.counts[app.id] else null
+        if (badgeCount != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = size * 0.1f, y = -size * 0.1f)
+                    .size(size * 0.34f)
+                    .clip(CircleShape)
+                    .background(Color(0xFFFF3B30)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = badgeCount.toString(),
+                    color = Color.White,
+                    fontSize = (size.value * 0.2f).sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
     }
 }
@@ -110,7 +135,7 @@ fun FolderIconVisual(folder: HomeItem.Folder, size: Dp = 60.dp) {
 fun HomeItemView(item: HomeItem, iconSize: Dp = 60.dp, labelColor: Color = Color.White) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         when (item) {
-            is HomeItem.App -> AppIconVisual(item.app, iconSize)
+            is HomeItem.App -> AppIconVisual(item.app, iconSize, showBadge = true)
             is HomeItem.Folder -> FolderIconVisual(item, iconSize)
         }
         Spacer(Modifier.height(5.dp))
