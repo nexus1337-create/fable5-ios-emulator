@@ -33,6 +33,8 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+        // Pager и другие foundation-API помечены как experimental
+        freeCompilerArgs += listOf("-opt-in=androidx.compose.foundation.ExperimentalFoundationApi")
     }
 
     buildFeatures {
