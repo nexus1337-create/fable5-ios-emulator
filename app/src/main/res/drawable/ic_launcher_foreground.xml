@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Сетка из четырёх скруглённых "иконок" — мотив домашнего экрана iOS -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M31,31 m5,0 h12 a5,5 0 0 1 5,5 v12 a5,5 0 0 1 -5,5 h-12 a5,5 0 0 1 -5,-5 v-12 a5,5 0 0 1 5,-5 z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M60,31 m5,0 h12 a5,5 0 0 1 5,5 v12 a5,5 0 0 1 -5,5 h-12 a5,5 0 0 1 -5,-5 v-12 a5,5 0 0 1 5,-5 z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M31,60 m5,0 h12 a5,5 0 0 1 5,5 v12 a5,5 0 0 1 -5,5 h-12 a5,5 0 0 1 -5,-5 v-12 a5,5 0 0 1 5,-5 z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M60,60 m5,0 h12 a5,5 0 0 1 5,5 v12 a5,5 0 0 1 -5,5 h-12 a5,5 0 0 1 -5,-5 v-12 a5,5 0 0 1 5,-5 z" />
+</vector>
