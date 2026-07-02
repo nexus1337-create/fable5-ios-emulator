@@ -1,6 +1,7 @@
 package com.fable5.iosemulator.ui.screens
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -19,10 +20,11 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -44,6 +46,7 @@ import com.fable5.iosemulator.ui.AppScreenHost
 import com.fable5.iosemulator.ui.components.AppIconVisual
 import com.fable5.iosemulator.ui.theme.IosDarkCard
 import com.fable5.iosemulator.viewmodel.EmulatorViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -69,8 +72,11 @@ fun AppSwitcherScreen(vm: EmulatorViewModel, modifier: Modifier = Modifier) {
                 horizontalArrangement = Arrangement.spacedBy(20.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                items(vm.recentApps.toList(), key = { it.name }) { appId ->
-                    SwitcherCard(appId = appId, vm = vm)
+                itemsIndexed(
+                    vm.recentApps.toList(),
+                    key = { _, id -> id.name }
+                ) { index, appId ->
+                    SwitcherCard(appId = appId, index = index, vm = vm)
                 }
             }
         }
@@ -79,7 +85,7 @@ fun AppSwitcherScreen(vm: EmulatorViewModel, modifier: Modifier = Modifier) {
 
 /** Карточка одного приложения в переключателе. */
 @Composable
-private fun SwitcherCard(appId: AppId, vm: EmulatorViewModel) {
+private fun SwitcherCard(appId: AppId, index: Int, vm: EmulatorViewModel) {
     val app = AppCatalog[appId]
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
@@ -93,12 +99,23 @@ private fun SwitcherCard(appId: AppId, vm: EmulatorViewModel) {
     val scope = rememberCoroutineScope()
     val currentAppId by rememberUpdatedState(appId)
 
+    // Каскадное появление: карточки «подплывают» одна за другой
+    val appear = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        delay(index * 60L)
+        appear.animateTo(1f, tween(280, easing = FastOutSlowInEasing))
+    }
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .offset { IntOffset(0, offsetY.value.roundToInt()) }
             .graphicsLayer {
-                alpha = 1f - (-offsetY.value / 1400f).coerceIn(0f, 0.8f)
+                val enter = appear.value
+                scaleX = 0.88f + 0.12f * enter
+                scaleY = 0.88f + 0.12f * enter
+                translationY += 60f * (1f - enter)
+                alpha = enter * (1f - (-offsetY.value / 1400f).coerceIn(0f, 0.8f))
             }
     ) {
         // Заголовок карточки: иконка + имя

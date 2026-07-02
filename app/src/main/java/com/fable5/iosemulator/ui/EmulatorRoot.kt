@@ -80,18 +80,26 @@ fun EmulatorRoot(vm: EmulatorViewModel) {
             ),
             label = "appLaunch"
         )
+        // Прогресс блокировки: параллельно уезжающему локскрину
+        // домашний экран «приезжает» из глубины (как в iOS)
+        val lockProgress by animateFloatAsState(
+            targetValue = if (vm.locked) 1f else 0f,
+            animationSpec = tween(420, easing = FastOutSlowInEasing),
+            label = "lockProgress"
+        )
 
         Box(Modifier.fillMaxSize().background(Color.Black)) {
             // ---------- 1. Домашний экран ----------
-            // При запуске приложения home слегка «улетает» вглубь, как в iOS
+            // Параллельные анимации: зум при запуске приложения
+            // и «выплывание» из глубины при разблокировке
             HomeScreen(
                 vm,
                 Modifier
                     .graphicsLayer {
-                        val zoom = 1f + 0.1f * appProgress
+                        val zoom = 1f + 0.1f * appProgress + 0.14f * lockProgress
                         scaleX = zoom
                         scaleY = zoom
-                        alpha = 1f - 0.4f * appProgress
+                        alpha = (1f - 0.4f * appProgress) * (1f - 0.45f * lockProgress)
                     }
                     .blur(homeBlur)
             )

@@ -60,6 +60,7 @@ import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.abs
 
 /**
  * Домашний экран iOS: обои, виджеты, страницы иконок с drag & drop,
@@ -88,10 +89,18 @@ fun HomeScreen(vm: EmulatorViewModel, modifier: Modifier = Modifier) {
                     state = pagerState,
                     modifier = Modifier.weight(1f)
                 ) { page ->
+                    // Параллакс: контент страницы движется медленнее свайпа
+                    // и слегка тает на краях — как перелистывание в iOS
+                    val pageOffset =
+                        (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
                     Column(
                         Modifier
                             .fillMaxSize()
                             .padding(horizontal = 14.dp)
+                            .graphicsLayer {
+                                translationX = pageOffset * size.width * 0.3f
+                                alpha = 1f - abs(pageOffset).coerceIn(0f, 1f) * 0.45f
+                            }
                     ) {
                         if (page == 0) {
                             HomeWidgets()
