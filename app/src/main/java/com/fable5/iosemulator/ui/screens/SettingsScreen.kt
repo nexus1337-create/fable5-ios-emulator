@@ -277,6 +277,17 @@ private fun MainSettings(vm: EmulatorViewModel, onNavigate: (SettingsSection) ->
                 title = "Конфиденциальность и безопасность", dark = dark
             )
         }
+        Spacer(Modifier.height(20.dp))
+
+        // Блокировка экрана (демонстрация экрана блокировки)
+        SettingsGroup(dark) {
+            SettingsRow(
+                icon = Icons.Filled.Lock, iconBg = IosGray,
+                title = "Заблокировать экран", dark = dark,
+                showChevron = false,
+                onClick = { vm.lockScreen() }
+            )
+        }
 
         Spacer(Modifier.height(24.dp))
         Text(

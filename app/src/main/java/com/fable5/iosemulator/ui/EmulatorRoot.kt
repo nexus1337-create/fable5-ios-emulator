@@ -8,7 +8,10 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -30,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,7 +44,9 @@ import com.fable5.iosemulator.ui.components.DynamicIsland
 import com.fable5.iosemulator.ui.components.HomeGestureArea
 import com.fable5.iosemulator.ui.components.IosStatusBar
 import com.fable5.iosemulator.ui.screens.AppSwitcherScreen
+import com.fable5.iosemulator.ui.screens.ControlCenterOverlay
 import com.fable5.iosemulator.ui.screens.HomeScreen
+import com.fable5.iosemulator.ui.screens.LockScreen
 import com.fable5.iosemulator.ui.screens.MessagesScreen
 import com.fable5.iosemulator.ui.screens.PhotosScreen
 import com.fable5.iosemulator.ui.screens.SafariScreen
@@ -143,9 +149,37 @@ fun EmulatorRoot(vm: EmulatorViewModel) {
                 }
             }
 
+            // ---------- 3.5 Пункт управления ----------
+            AnimatedVisibility(
+                visible = vm.controlCenterVisible,
+                enter = slideInVertically(
+                    initialOffsetY = { -it / 2 },
+                    animationSpec = tween(260, easing = FastOutSlowInEasing)
+                ) + fadeIn(tween(200)),
+                exit = slideOutVertically(
+                    targetOffsetY = { -it / 2 },
+                    animationSpec = tween(220, easing = FastOutSlowInEasing)
+                ) + fadeOut(tween(180))
+            ) {
+                ControlCenterOverlay(vm) { vm.controlCenterVisible = false }
+            }
+
+            // ---------- 3.7 Экран блокировки ----------
+            AnimatedVisibility(
+                visible = vm.locked,
+                enter = fadeIn(tween(250)),
+                exit = slideOutVertically(
+                    targetOffsetY = { -it },
+                    animationSpec = tween(380, easing = FastOutSlowInEasing)
+                ) + fadeOut(tween(320))
+            ) {
+                LockScreen(vm)
+            }
+
             // ---------- 4. Статус-бар + Dynamic Island ----------
             // Тёмный контент статус-бара — только в приложениях при светлой теме
-            val darkStatusContent = vm.openedApp != null && !vm.darkTheme
+            val darkStatusContent =
+                vm.openedApp != null && !vm.darkTheme && !vm.locked && !vm.controlCenterVisible
             val statusColor = if (darkStatusContent) Color.Black else Color.White
 
             IosStatusBar(
@@ -167,22 +201,65 @@ fun EmulatorRoot(vm: EmulatorViewModel) {
                 )
             }
 
+            // ---------- 4.5 Затемнение от ползунка яркости ----------
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = (1f - vm.brightness) * 0.55f))
+            )
+
             // ---------- 5. Жесты и Home Indicator ----------
             HomeGestureArea(
                 onShortSwipeUp = {
-                    if (vm.openedApp != null || vm.switcherVisible) vm.goHome()
-                    else vm.showSwitcher()
+                    when {
+                        vm.locked -> vm.unlock()
+                        vm.controlCenterVisible -> vm.controlCenterVisible = false
+                        vm.openedApp != null || vm.switcherVisible -> vm.goHome()
+                        else -> vm.showSwitcher()
+                    }
                 },
-                onLongSwipeUp = { vm.showSwitcher() },
+                onLongSwipeUp = {
+                    when {
+                        vm.locked -> vm.unlock()
+                        vm.controlCenterVisible -> vm.controlCenterVisible = false
+                        else -> vm.showSwitcher()
+                    }
+                },
                 indicatorColor = statusColor,
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
 
+            // ---------- 6. Жест Пункта управления ----------
+            // Свайп вниз от правого верхнего угла, как в iOS
+            if (!vm.locked && !vm.controlCenterVisible) {
+                Box(
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .fillMaxWidth(0.42f)
+                        .height(44.dp)
+                        .pointerInput(Unit) {
+                            detectVerticalDragGestures(
+                                onVerticalDrag = { change, dragAmount ->
+                                    if (dragAmount > 10f) {
+                                        change.consume()
+                                        vm.controlCenterVisible = true
+                                    }
+                                }
+                            )
+                        }
+                )
+            }
+
             // Системная кнопка «Назад» ведёт себя как жест «домой»
             BackHandler(
-                enabled = vm.openedApp != null || vm.switcherVisible || vm.openedFolderKey != null
+                enabled = vm.openedApp != null || vm.switcherVisible ||
+                    vm.openedFolderKey != null || vm.controlCenterVisible
             ) {
-                if (vm.openedFolderKey != null) vm.openedFolderKey = null else vm.goHome()
+                when {
+                    vm.controlCenterVisible -> vm.controlCenterVisible = false
+                    vm.openedFolderKey != null -> vm.openedFolderKey = null
+                    else -> vm.goHome()
+                }
             }
         }
     }

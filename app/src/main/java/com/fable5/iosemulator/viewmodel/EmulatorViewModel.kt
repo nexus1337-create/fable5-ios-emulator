@@ -36,7 +36,30 @@ class EmulatorViewModel : ViewModel() {
     var airplaneMode by mutableStateOf(false)
     var wifiEnabled by mutableStateOf(true)
     var bluetoothEnabled by mutableStateOf(true)
+    var cellularData by mutableStateOf(true)
     var wifiNetwork by mutableStateOf("FableNet")
+
+    // ---------------------------------------------------------------
+    // Экран блокировки и Пункт управления
+    // ---------------------------------------------------------------
+    var locked by mutableStateOf(true)
+        private set
+    var controlCenterVisible by mutableStateOf(false)
+    var brightness by mutableStateOf(0.8f)
+    var volume by mutableStateOf(0.55f)
+    var flashlightOn by mutableStateOf(false)
+    var focusMode by mutableStateOf(false)
+
+    fun unlock() {
+        locked = false
+    }
+
+    /** Блокировка экрана (кнопка в Настройках). */
+    fun lockScreen() {
+        goHome()
+        controlCenterVisible = false
+        locked = true
+    }
 
     // ---------------------------------------------------------------
     // Dynamic Island (mock-плеер)
@@ -65,6 +88,7 @@ class EmulatorViewModel : ViewModel() {
         openedApp = id
         switcherVisible = false
         openedFolderKey = null
+        controlCenterVisible = false
         recentApps.remove(id)
         recentApps.add(0, id)
         // Держим не больше шести карточек в переключателе
@@ -75,6 +99,7 @@ class EmulatorViewModel : ViewModel() {
         openedApp = null
         switcherVisible = false
         openedFolderKey = null
+        controlCenterVisible = false
     }
 
     fun showSwitcher() {
