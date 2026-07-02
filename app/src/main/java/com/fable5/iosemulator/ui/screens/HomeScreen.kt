@@ -42,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -93,18 +94,21 @@ fun HomeScreen(vm: EmulatorViewModel, modifier: Modifier = Modifier) {
                     modifier = Modifier.weight(1f)
                 ) { page ->
                     // Параллакс: контент страницы движется медленнее свайпа
-                    // и слегка тает на краях — как перелистывание в iOS
+                    // и слегка тает на краях — как перелистывание в iOS.
+                    // Внешний Box клипует сдвинутый контент по границам страницы,
+                    // иначе иконки наезжают на соседнюю страницу.
                     val pageOffset =
                         (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
-                    Column(
-                        Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 14.dp)
-                            .graphicsLayer {
-                                translationX = pageOffset * size.width * 0.3f
-                                alpha = 1f - abs(pageOffset).coerceIn(0f, 1f) * 0.45f
-                            }
-                    ) {
+                    Box(Modifier.fillMaxSize().clipToBounds()) {
+                        Column(
+                            Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 14.dp)
+                                .graphicsLayer {
+                                    translationX = pageOffset * size.width * 0.25f
+                                    alpha = 1f - abs(pageOffset).coerceIn(0f, 1f) * 0.4f
+                                }
+                        ) {
                         if (page == 0) {
                             HomeWidgets()
                             Spacer(Modifier.height(20.dp))
@@ -121,6 +125,7 @@ fun HomeScreen(vm: EmulatorViewModel, modifier: Modifier = Modifier) {
                                 }
                             }
                         )
+                        }
                     }
                 }
 

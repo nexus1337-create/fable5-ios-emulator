@@ -115,10 +115,11 @@ fun EmulatorRoot(vm: EmulatorViewModel) {
                 enter = fadeIn(tween(250)),
                 exit = fadeOut(tween(200))
             ) {
+                // Затемнение плотнее — работает и без RenderEffect-блюра
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.35f))
+                        .background(Color.Black.copy(alpha = 0.5f))
                 ) {
                     AppSwitcherScreen(vm)
                 }

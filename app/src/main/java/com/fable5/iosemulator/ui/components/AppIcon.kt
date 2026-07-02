@@ -61,6 +61,9 @@ fun AppIconVisual(app: IosApp, size: Dp = 60.dp, showBadge: Boolean = false) {
                 AppId.MAPS -> MapsIcon()
                 AppId.WALLET -> WalletIcon()
                 AppId.STOCKS -> StocksIcon()
+                AppId.CAMERA -> CameraIcon()
+                AppId.SETTINGS -> SettingsGearIcon()
+                AppId.MESSAGES -> MessagesIcon()
                 else -> DefaultAppIcon(app, size)
             }
         }

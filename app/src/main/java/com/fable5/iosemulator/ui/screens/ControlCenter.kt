@@ -70,10 +70,12 @@ import com.fable5.iosemulator.viewmodel.EmulatorViewModel
  */
 @Composable
 fun ControlCenterOverlay(vm: EmulatorViewModel, onDismiss: () -> Unit) {
+    // Плотное затемнение: на устройствах без RenderEffect-блюра (до Android 12)
+    // именно оно отделяет Пункт управления от контента позади
     Box(
         Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.42f))
+            .background(Color.Black.copy(alpha = 0.6f))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
@@ -236,15 +238,18 @@ private fun SmallCircleButton(icon: ImageVector) {
     }
 }
 
-/** «Стеклянный» модуль Пункта управления. */
+/**
+ * «Матовый» модуль Пункта управления. Фон почти непрозрачный,
+ * чтобы модули читались и на устройствах без настоящего блюра.
+ */
 @Composable
 private fun GlassModule(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     val shape = RoundedCornerShape(26.dp)
     Box(
         modifier
             .clip(shape)
-            .background(Color.White.copy(alpha = 0.18f))
-            .border(1.dp, Color.White.copy(alpha = 0.12f), shape)
+            .background(Color(0xFF2E2E30).copy(alpha = 0.88f))
+            .border(1.dp, Color.White.copy(alpha = 0.08f), shape)
     ) {
         content()
     }
@@ -386,8 +391,8 @@ private fun VerticalSlider(
         modifier
             .fillMaxHeight()
             .clip(shape)
-            .background(Color.White.copy(alpha = 0.16f))
-            .border(1.dp, Color.White.copy(alpha = 0.12f), shape)
+            .background(Color(0xFF3A3A3C).copy(alpha = 0.88f))
+            .border(1.dp, Color.White.copy(alpha = 0.08f), shape)
             .pointerInput(Unit) {
                 detectVerticalDragGestures { change, dragAmount ->
                     change.consume()

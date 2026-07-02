@@ -440,6 +440,100 @@ fun WalletIcon() {
 }
 
 // ---------------------------------------------------------------
+// Камера: светло-серый фон, тёмный корпус с объективом
+// ---------------------------------------------------------------
+@Composable
+fun CameraIcon() {
+    Box(
+        Modifier.fillMaxSize().background(
+            Brush.verticalGradient(listOf(Color(0xFFE9E9EE), Color(0xFFBDBEC4)))
+        )
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            val body = Color(0xFF3A3A3C)
+            // «Горб» видоискателя
+            drawRoundRect(
+                color = body,
+                topLeft = Offset(size.width * 0.36f, size.height * 0.26f),
+                size = Size(size.width * 0.28f, size.height * 0.12f),
+                cornerRadius = CornerRadius(size.width * 0.04f)
+            )
+            // Корпус
+            drawRoundRect(
+                color = body,
+                topLeft = Offset(size.width * 0.18f, size.height * 0.32f),
+                size = Size(size.width * 0.64f, size.height * 0.4f),
+                cornerRadius = CornerRadius(size.width * 0.08f)
+            )
+            // Объектив
+            drawCircle(Color(0xFFD9D9DE), size.width * 0.13f, center = Offset(size.width * 0.5f, size.height * 0.52f))
+            drawCircle(Color(0xFF2C2C2E), size.width * 0.085f, center = Offset(size.width * 0.5f, size.height * 0.52f))
+        }
+    }
+}
+
+// ---------------------------------------------------------------
+// Настройки: серый фон и тёмная шестерёнка
+// ---------------------------------------------------------------
+@Composable
+fun SettingsGearIcon() {
+    Box(
+        Modifier.fillMaxSize().background(
+            Brush.verticalGradient(listOf(Color(0xFFDBDCE1), Color(0xFF9EA1A8)))
+        )
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            val c = center
+            val gear = Color(0xFF4A4D55)
+            // Зубья шестерёнки
+            for (i in 0 until 8) {
+                rotate(degrees = i * 45f, pivot = c) {
+                    drawRoundRect(
+                        color = gear,
+                        topLeft = Offset(c.x - size.width * 0.06f, size.height * 0.16f),
+                        size = Size(size.width * 0.12f, size.height * 0.2f),
+                        cornerRadius = CornerRadius(size.width * 0.03f)
+                    )
+                }
+            }
+            // Тело и отверстие
+            drawCircle(gear, size.width * 0.25f, c)
+            drawCircle(Color(0xFFC7C9CF), size.width * 0.11f, c)
+        }
+    }
+}
+
+// ---------------------------------------------------------------
+// Сообщения: зелёный градиент и белый пузырь с хвостиком
+// ---------------------------------------------------------------
+@Composable
+fun MessagesIcon() {
+    Box(
+        Modifier.fillMaxSize().background(
+            Brush.verticalGradient(listOf(Color(0xFF6BE07A), Color(0xFF15BD31)))
+        )
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            // Пузырь
+            drawRoundRect(
+                color = Color.White,
+                topLeft = Offset(size.width * 0.17f, size.height * 0.22f),
+                size = Size(size.width * 0.66f, size.height * 0.46f),
+                cornerRadius = CornerRadius(size.width * 0.21f)
+            )
+            // Хвостик слева снизу
+            val tail = Path().apply {
+                moveTo(size.width * 0.34f, size.height * 0.62f)
+                lineTo(size.width * 0.24f, size.height * 0.8f)
+                lineTo(size.width * 0.46f, size.height * 0.66f)
+                close()
+            }
+            drawPath(tail, Color.White)
+        }
+    }
+}
+
+// ---------------------------------------------------------------
 // Акции: чёрный фон и белый график
 // ---------------------------------------------------------------
 @Composable
