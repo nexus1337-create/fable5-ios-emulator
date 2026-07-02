@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -99,6 +100,13 @@ private fun SwitcherCard(appId: AppId, index: Int, vm: EmulatorViewModel) {
     val scope = rememberCoroutineScope()
     val currentAppId by rememberUpdatedState(appId)
 
+    // Пороги жеста в dp: в «сырых» пикселях поведение свайпа
+    // отличалось бы в разы между mdpi- и xxhdpi-экранами
+    val density = LocalDensity.current
+    val dismissThresholdPx = with(density) { 90.dp.toPx() }
+    val flyAwayPx = with(density) { 800.dp.toPx() }
+    val fadeDistancePx = with(density) { 500.dp.toPx() }
+
     // Каскадное появление: карточки «подплывают» одна за другой
     val appear = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
@@ -115,7 +123,7 @@ private fun SwitcherCard(appId: AppId, index: Int, vm: EmulatorViewModel) {
                 scaleX = 0.88f + 0.12f * enter
                 scaleY = 0.88f + 0.12f * enter
                 translationY += 60f * (1f - enter)
-                alpha = enter * (1f - (-offsetY.value / 1400f).coerceIn(0f, 0.8f))
+                alpha = enter * (1f - (-offsetY.value / fadeDistancePx).coerceIn(0f, 0.8f))
             }
     ) {
         // Заголовок карточки: иконка + имя
@@ -168,9 +176,9 @@ private fun SwitcherCard(appId: AppId, index: Int, vm: EmulatorViewModel) {
                             },
                             onDragEnd = {
                                 scope.launch {
-                                    if (offsetY.value < -240f) {
+                                    if (offsetY.value < -dismissThresholdPx) {
                                         // Улетает вверх и удаляется из недавних
-                                        offsetY.animateTo(-2200f, tween(240))
+                                        offsetY.animateTo(-flyAwayPx, tween(240))
                                         vm.removeFromRecents(currentAppId)
                                     } else {
                                         offsetY.animateTo(0f, spring())

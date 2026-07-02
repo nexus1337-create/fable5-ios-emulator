@@ -199,7 +199,7 @@ private fun MainSettings(vm: EmulatorViewModel, onNavigate: (SettingsSection) ->
             SettingsRow(
                 icon = Icons.Filled.AirplanemodeActive, iconBg = IosOrange,
                 title = "Авиарежим", dark = dark, showChevron = false,
-                trailing = { IosSwitch(vm.airplaneMode, { vm.airplaneMode = it }) }
+                trailing = { IosSwitch(vm.airplaneMode, { vm.setAirplaneModeEnabled(it) }) }
             )
             SettingsDivider(dark)
             SettingsRow(
@@ -214,7 +214,7 @@ private fun MainSettings(vm: EmulatorViewModel, onNavigate: (SettingsSection) ->
                 title = "Bluetooth",
                 value = if (vm.bluetoothEnabled) "Вкл." else "Выкл.",
                 dark = dark, showChevron = false,
-                trailing = { IosSwitch(vm.bluetoothEnabled, { vm.bluetoothEnabled = it }) }
+                trailing = { IosSwitch(vm.bluetoothEnabled, { vm.setBluetoothState(it) }) }
             )
             SettingsDivider(dark)
             SettingsRow(
@@ -326,7 +326,7 @@ private fun WifiSettings(vm: EmulatorViewModel, onBack: () -> Unit) {
             SettingsRow(
                 icon = Icons.Filled.Wifi, iconBg = IosBlue,
                 title = "Wi-Fi", dark = dark, showChevron = false,
-                trailing = { IosSwitch(vm.wifiEnabled, { vm.wifiEnabled = it }) }
+                trailing = { IosSwitch(vm.wifiEnabled, { vm.setWifiState(it) }) }
             )
         }
         Spacer(Modifier.height(20.dp))
@@ -346,7 +346,7 @@ private fun WifiSettings(vm: EmulatorViewModel, onBack: () -> Unit) {
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
-                            ) { vm.wifiNetwork = network }
+                            ) { vm.selectWifiNetwork(network) }
                             .padding(horizontal = 14.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -412,7 +412,7 @@ private fun AppearanceSettings(vm: EmulatorViewModel, onBack: () -> Unit) {
             SettingsRow(
                 icon = Icons.Filled.DarkMode, iconBg = IosIndigo,
                 title = "Тёмная тема", dark = dark, showChevron = false,
-                trailing = { IosSwitch(vm.darkTheme, { vm.darkTheme = it }) }
+                trailing = { IosSwitch(vm.darkTheme, { vm.setDarkThemeEnabled(it) }) }
             )
         }
         Spacer(Modifier.height(24.dp))
@@ -444,7 +444,7 @@ private fun AppearanceSettings(vm: EmulatorViewModel, onBack: () -> Unit) {
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
-                            ) { vm.wallpaperIndex = index }
+                            ) { vm.selectWallpaper(index) }
                     ) {
                         WallpaperBackground(wallpaper, Modifier.fillMaxSize())
                     }

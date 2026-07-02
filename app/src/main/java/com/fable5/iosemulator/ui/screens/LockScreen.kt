@@ -25,10 +25,8 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -48,11 +46,10 @@ import com.fable5.iosemulator.model.Wallpapers
 import com.fable5.iosemulator.ui.components.AppIconVisual
 import com.fable5.iosemulator.ui.components.StatusBarHeight
 import com.fable5.iosemulator.ui.components.WallpaperBackground
+import com.fable5.iosemulator.ui.components.asIosClock
+import com.fable5.iosemulator.ui.components.asIosDate
+import com.fable5.iosemulator.ui.components.rememberCurrentTime
 import com.fable5.iosemulator.viewmodel.EmulatorViewModel
-import kotlinx.coroutines.delay
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 /**
  * Экран блокировки iOS: большие часы, дата, уведомления,
@@ -63,18 +60,10 @@ import java.util.Locale
 fun LockScreen(vm: EmulatorViewModel, modifier: Modifier = Modifier) {
     val wallpaper = Wallpapers.all[vm.wallpaperIndex.coerceIn(0, Wallpapers.all.lastIndex)]
 
-    // Живые часы
-    var now by remember { mutableStateOf(Date()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            now = Date()
-            delay(1000L)
-        }
-    }
-    val locale = Locale("ru")
-    val time = SimpleDateFormat("H:mm", locale).format(now)
-    val date = SimpleDateFormat("EEEE, d MMMM", locale).format(now)
-        .replaceFirstChar { it.uppercase(locale) }
+    // Живые часы (общий тикер — см. components/SystemState.kt)
+    val now by rememberCurrentTime()
+    val time = now.asIosClock()
+    val date = now.asIosDate("EEEE, d MMMM")
 
     var dragTotal by remember { mutableFloatStateOf(0f) }
 

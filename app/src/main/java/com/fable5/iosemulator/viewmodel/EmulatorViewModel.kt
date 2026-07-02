@@ -1,51 +1,105 @@
 package com.fable5.iosemulator.viewmodel
 
+import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.geometry.Offset
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.fable5.iosemulator.model.AppCatalog
+import com.fable5.iosemulator.data.SettingsRepository
 import com.fable5.iosemulator.model.AppId
+import com.fable5.iosemulator.model.AppCatalog
+import com.fable5.iosemulator.model.ChatMessage
+import com.fable5.iosemulator.model.Conversation
 import com.fable5.iosemulator.model.HomeItem
+import com.fable5.iosemulator.model.HomeLayout
+import com.fable5.iosemulator.model.HomeLayoutCodec
+import com.fable5.iosemulator.model.MockChats
+import com.fable5.iosemulator.model.Wallpapers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 /**
- * Единственный ViewModel эмулятора (простой MVVM):
- * хранит всё глобальное состояние — навигацию, тему, обои,
- * раскладку домашнего экрана, недавние приложения и данные mock-приложений.
+ * Главный state-holder эмулятора: навигация, тема/обои, системные
+ * тумблеры и раскладка домашнего экрана. Данные и логика раскладки
+ * вынесены в model/ (HomeLayout, MockChats); тема, обои, тумблеры
+ * и раскладка сохраняются в DataStore и переживают перезапуск.
  */
-class EmulatorViewModel : ViewModel() {
+class EmulatorViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val settings = SettingsRepository(application)
 
     // ---------------------------------------------------------------
-    // Тема и обои
+    // Тема и обои (персистентные)
     // ---------------------------------------------------------------
     var darkTheme by mutableStateOf(false)
+        private set
     var wallpaperIndex by mutableStateOf(0)
+        private set
+
+    fun setDarkThemeEnabled(value: Boolean) {
+        darkTheme = value
+        viewModelScope.launch { settings.saveDarkTheme(value) }
+    }
+
+    fun selectWallpaper(index: Int) {
+        wallpaperIndex = index.coerceIn(0, Wallpapers.all.lastIndex)
+        viewModelScope.launch { settings.saveWallpaperIndex(wallpaperIndex) }
+    }
 
     // ---------------------------------------------------------------
-    // Системные переключатели (отражаются в статус-баре)
+    // Системные переключатели (отражаются в статус-баре, персистентные)
     // ---------------------------------------------------------------
     var airplaneMode by mutableStateOf(false)
+        private set
     var wifiEnabled by mutableStateOf(true)
+        private set
     var bluetoothEnabled by mutableStateOf(true)
+        private set
     var cellularData by mutableStateOf(true)
+        private set
     var wifiNetwork by mutableStateOf("FableNet")
+        private set
+
+    fun setAirplaneModeEnabled(value: Boolean) {
+        airplaneMode = value
+        viewModelScope.launch { settings.saveAirplaneMode(value) }
+    }
+
+    fun setWifiState(value: Boolean) {
+        wifiEnabled = value
+        viewModelScope.launch { settings.saveWifiEnabled(value) }
+    }
+
+    fun setBluetoothState(value: Boolean) {
+        bluetoothEnabled = value
+        viewModelScope.launch { settings.saveBluetoothEnabled(value) }
+    }
+
+    fun setCellularDataEnabled(value: Boolean) {
+        cellularData = value
+        viewModelScope.launch { settings.saveCellularData(value) }
+    }
+
+    fun selectWifiNetwork(name: String) {
+        wifiNetwork = name
+        viewModelScope.launch { settings.saveWifiNetwork(name) }
+    }
 
     // ---------------------------------------------------------------
-    // Экран блокировки и Пункт управления
+    // Экран блокировки, Пункт управления, Spotlight
     // ---------------------------------------------------------------
     var locked by mutableStateOf(true)
         private set
     var controlCenterVisible by mutableStateOf(false)
+        private set
     var spotlightVisible by mutableStateOf(false)
+        private set
     var brightness by mutableStateOf(0.8f)
     var volume by mutableStateOf(0.55f)
     var flashlightOn by mutableStateOf(false)
@@ -59,8 +113,23 @@ class EmulatorViewModel : ViewModel() {
     /** Блокировка экрана (кнопка в Настройках). */
     fun lockScreen() {
         goHome()
-        controlCenterVisible = false
         locked = true
+    }
+
+    fun showControlCenter() {
+        if (!locked) controlCenterVisible = true
+    }
+
+    fun hideControlCenter() {
+        controlCenterVisible = false
+    }
+
+    fun showSpotlight() {
+        spotlightVisible = true
+    }
+
+    fun hideSpotlight() {
+        spotlightVisible = false
     }
 
     // ---------------------------------------------------------------
@@ -77,6 +146,7 @@ class EmulatorViewModel : ViewModel() {
     var switcherVisible by mutableStateOf(false)
         private set
     var openedFolderKey by mutableStateOf<String?>(null)
+        private set
 
     /** Точка на экране, из которой «вырастает» открываемое приложение. */
     var launchOrigin by mutableStateOf<Offset?>(null)
@@ -95,7 +165,7 @@ class EmulatorViewModel : ViewModel() {
         recentApps.remove(id)
         recentApps.add(0, id)
         // Держим не больше шести карточек в переключателе
-        while (recentApps.size > 6) recentApps.removeAt(recentApps.lastIndex)
+        while (recentApps.size > MAX_RECENTS) recentApps.removeAt(recentApps.lastIndex)
     }
 
     fun goHome() {
@@ -116,136 +186,60 @@ class EmulatorViewModel : ViewModel() {
         recentApps.remove(id)
     }
 
-    // ---------------------------------------------------------------
-    // Домашний экран: страницы с иконками и папками
-    // ---------------------------------------------------------------
-    private var folderIdCounter = 1L
+    fun openFolder(key: String) {
+        openedFolderKey = key
+    }
 
-    val pages: List<SnapshotStateList<HomeItem>> = listOf(
-        mutableStateListOf(
-            HomeItem.App(AppCatalog[AppId.FACETIME]),
-            HomeItem.App(AppCatalog[AppId.CALENDAR]),
-            HomeItem.App(AppCatalog[AppId.NOTES]),
-            HomeItem.App(AppCatalog[AppId.CAMERA]),
-            HomeItem.App(AppCatalog[AppId.MAIL]),
-            HomeItem.App(AppCatalog[AppId.WEATHER]),
-            HomeItem.App(AppCatalog[AppId.CLOCK]),
-            HomeItem.App(AppCatalog[AppId.MAPS]),
-            HomeItem.App(AppCatalog[AppId.WALLET]),
-            HomeItem.App(AppCatalog[AppId.HEALTH]),
-            HomeItem.App(AppCatalog[AppId.MUSIC]),
-            HomeItem.App(AppCatalog[AppId.SETTINGS])
-        ),
-        mutableStateListOf(
-            HomeItem.App(AppCatalog[AppId.APP_STORE]),
-            HomeItem.App(AppCatalog[AppId.PODCASTS]),
-            HomeItem.Folder(
-                id = 0L,
-                name = "Утилиты",
-                apps = listOf(AppCatalog[AppId.CALCULATOR], AppCatalog[AppId.STOCKS])
-            )
-        )
-    )
+    fun closeFolder() {
+        openedFolderKey = null
+    }
+
+    // ---------------------------------------------------------------
+    // Домашний экран: страницы с иконками и папками (персистентные)
+    // ---------------------------------------------------------------
+    // mutableStateOf — чтобы подмена раскладки при восстановлении
+    // из DataStore вызвала рекомпозицию домашнего экрана
+    private var homeLayout by mutableStateOf(HomeLayout.default())
+
+    val pages: List<SnapshotStateList<HomeItem>> get() = homeLayout.pages
 
     /** Приложения в доке (нижняя панель). */
     val dockApps = listOf(AppId.PHONE, AppId.SAFARI, AppId.MESSAGES, AppId.PHOTOS)
         .map { AppCatalog[it] }
 
-    /** Перемещение иконки внутри страницы (drag & drop). */
     fun moveItem(page: Int, from: Int, to: Int) {
-        val list = pages[page]
-        if (from !in list.indices || from == to) return
-        val item = list.removeAt(from)
-        list.add(to.coerceIn(0, list.size), item)
+        homeLayout.moveItem(page, from, to)
+        persistLayout()
     }
 
-    /**
-     * Объединение элементов: перетаскивание приложения на другое приложение
-     * создаёт папку; перетаскивание на папку — добавляет приложение в неё.
-     */
     fun mergeItems(page: Int, from: Int, to: Int) {
-        val list = pages[page]
-        if (from !in list.indices || to !in list.indices || from == to) return
-        val source = list[from]
-        if (source !is HomeItem.App) return // папки в папки не вкладываем
-        when (val target = list[to]) {
-            is HomeItem.App -> list[to] = HomeItem.Folder(
-                id = folderIdCounter++,
-                name = "Папка",
-                apps = listOf(target.app, source.app)
-            )
-            is HomeItem.Folder -> list[to] = target.copy(apps = target.apps + source.app)
-        }
-        list.removeAt(from)
+        homeLayout.mergeItems(page, from, to)
+        persistLayout()
     }
 
-    /** Поиск открытой папки по ключу (для оверлея папки). */
-    fun findFolder(key: String): HomeItem.Folder? =
-        pages.asSequence()
-            .flatMap { it.asSequence() }
-            .filterIsInstance<HomeItem.Folder>()
-            .firstOrNull { it.key == key }
+    fun findFolder(key: String): HomeItem.Folder? = homeLayout.findFolder(key)
 
-    // ---------------------------------------------------------------
-    // Mock-данные приложения «Сообщения»
-    // ---------------------------------------------------------------
-    data class ChatMessage(val text: String, val fromMe: Boolean, val time: String)
-
-    class Conversation(
-        val id: Int,
-        val name: String,
-        val colorIndex: Int,
-        initial: List<ChatMessage>,
-        val cannedReplies: List<String>
-    ) {
-        val messages = mutableStateListOf<ChatMessage>().apply { addAll(initial) }
-        var replyCursor = 0
+    private fun persistLayout() {
+        val encoded = HomeLayoutCodec.encode(pages)
+        viewModelScope.launch { settings.saveHomeLayout(encoded) }
     }
 
-    val conversations = listOf(
-        Conversation(
-            id = 0, name = "Аня", colorIndex = 0,
-            initial = listOf(
-                ChatMessage("Привет! Видел новый эмулятор iOS? 😍", false, "9:41"),
-                ChatMessage("Ага, Fable 5? Выглядит прямо как настоящий iPhone", true, "9:42"),
-                ChatMessage("Dynamic Island вообще огонь 🔥", false, "9:43")
-            ),
-            cannedReplies = listOf(
-                "Ахах, точно! 😄",
-                "Кстати, обои там тоже можно менять",
-                "Напиши мне ещё, я проверяю авто-ответы 🙂"
-            )
-        ),
-        Conversation(
-            id = 1, name = "Команда Fable", colorIndex = 1,
-            initial = listOf(
-                ChatMessage("Релиз 1.0 готов к демо 🚀", false, "8:15"),
-                ChatMessage("App Switcher работает свайпом вверх", false, "8:16"),
-                ChatMessage("Отлично, показываю заказчику", true, "8:30")
-            ),
-            cannedReplies = listOf(
-                "Принято! Фиксируем в задачах ✅",
-                "Не забудь про тёмную тему в настройках",
-                "Скоро добавим ещё виджеты"
-            )
-        ),
-        Conversation(
-            id = 2, name = "Мама", colorIndex = 2,
-            initial = listOf(
-                ChatMessage("Ты покушал?", false, "Вчера"),
-                ChatMessage("Да, мам 🙂", true, "Вчера")
-            ),
-            cannedReplies = listOf("Молодец! ❤️", "Позвони бабушке", "Хорошего дня!")
-        ),
-        Conversation(
-            id = 3, name = "Дмитрий", colorIndex = 3,
-            initial = listOf(
-                ChatMessage("Скинь код Dynamic Island, пожалуйста", false, "Пн"),
-                ChatMessage("Уже в репозитории, смотри components/", true, "Пн")
-            ),
-            cannedReplies = listOf("Спасибо, нашёл 👍", "Красиво сделано", "Анимации плавные, респект")
-        )
-    )
+    // ---------------------------------------------------------------
+    // «Сообщения» и бейджи непрочитанных
+    // ---------------------------------------------------------------
+    val conversations: List<Conversation> = MockChats.conversations()
+
+    /** Бейдж на иконке: Сообщения — из непрочитанных чатов, Почта — mock. */
+    fun badgeFor(id: AppId): Int? = when (id) {
+        AppId.MESSAGES -> conversations.sumOf { it.unread }.takeIf { it > 0 }
+        AppId.MAIL -> MAIL_MOCK_BADGE
+        else -> null
+    }
+
+    /** Открытие чата сбрасывает его непрочитанные (гасит бейдж). */
+    fun markConversationRead(conversationId: Int) {
+        conversations.firstOrNull { it.id == conversationId }?.markRead()
+    }
 
     /** Отправка сообщения + имитация ответа собеседника с задержкой. */
     fun sendMessage(conversationId: Int, text: String) {
@@ -260,5 +254,27 @@ class EmulatorViewModel : ViewModel() {
     }
 
     private fun timeNow(): String =
-        SimpleDateFormat("H:mm", Locale.getDefault()).format(Date())
+        LocalTime.now().format(DateTimeFormatter.ofPattern("H:mm"))
+
+    // ---------------------------------------------------------------
+    // Восстановление сохранённого состояния
+    // ---------------------------------------------------------------
+    init {
+        viewModelScope.launch {
+            val saved = settings.load()
+            darkTheme = saved.darkTheme
+            wallpaperIndex = saved.wallpaperIndex.coerceIn(0, Wallpapers.all.lastIndex)
+            airplaneMode = saved.airplaneMode
+            wifiEnabled = saved.wifiEnabled
+            bluetoothEnabled = saved.bluetoothEnabled
+            cellularData = saved.cellularData
+            wifiNetwork = saved.wifiNetwork
+            HomeLayoutCodec.decode(saved.homeLayout)?.let { homeLayout = HomeLayout(it) }
+        }
+    }
+
+    private companion object {
+        const val MAX_RECENTS = 6
+        const val MAIL_MOCK_BADGE = 5
+    }
 }

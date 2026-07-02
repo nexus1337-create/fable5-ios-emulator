@@ -33,7 +33,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,11 +58,10 @@ import com.fable5.iosemulator.ui.components.AppIconVisual
 import com.fable5.iosemulator.ui.components.DraggableIconGrid
 import com.fable5.iosemulator.ui.components.StatusBarHeight
 import com.fable5.iosemulator.ui.components.WallpaperBackground
+import com.fable5.iosemulator.ui.components.asIosClock
+import com.fable5.iosemulator.ui.components.asIosDate
+import com.fable5.iosemulator.ui.components.rememberCurrentTime
 import com.fable5.iosemulator.viewmodel.EmulatorViewModel
-import kotlinx.coroutines.delay
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import kotlin.math.abs
 
 /**
@@ -120,16 +118,17 @@ fun HomeScreen(vm: EmulatorViewModel, modifier: Modifier = Modifier) {
                             onItemTap = { index, center ->
                                 when (val item = vm.pages[page].getOrNull(index)) {
                                     is HomeItem.App -> vm.openApp(item.app.id, center)
-                                    is HomeItem.Folder -> vm.openedFolderKey = item.key
+                                    is HomeItem.Folder -> vm.openFolder(item.key)
                                     null -> Unit
                                 }
-                            }
+                            },
+                            badgeFor = vm::badgeFor
                         )
                         }
                     }
                 }
 
-                SearchPill(onTap = { vm.spotlightVisible = true })
+                SearchPill(onTap = { vm.showSpotlight() })
                 Spacer(Modifier.height(12.dp))
                 Dock(vm)
                 Spacer(Modifier.height(34.dp)) // место под Home Indicator
@@ -137,17 +136,22 @@ fun HomeScreen(vm: EmulatorViewModel, modifier: Modifier = Modifier) {
         }
 
         // ---------- Оверлей открытой папки ----------
+        // Запоминаем последнюю открытую папку: во время exit-анимации
+        // openedFolderKey уже null, и без этого папка исчезала бы рывком
+        var lastFolder by remember { mutableStateOf<HomeItem.Folder?>(null) }
+        val currentFolder = vm.openedFolderKey?.let { vm.findFolder(it) }
+        if (currentFolder != null) lastFolder = currentFolder
         AnimatedVisibility(
             visible = folderOpen,
             enter = fadeIn(tween(220)) + scaleIn(initialScale = 0.9f, animationSpec = tween(260)),
             exit = fadeOut(tween(180)) + scaleOut(targetScale = 0.92f, animationSpec = tween(200))
         ) {
-            val folder = vm.openedFolderKey?.let { vm.findFolder(it) }
+            val folder = currentFolder ?: lastFolder
             if (folder != null) {
                 FolderOverlay(
                     folder = folder,
                     onAppClick = { vm.openApp(it) },
-                    onDismiss = { vm.openedFolderKey = null }
+                    onDismiss = { vm.closeFolder() }
                 )
             }
         }
@@ -157,18 +161,10 @@ fun HomeScreen(vm: EmulatorViewModel, modifier: Modifier = Modifier) {
 /** Виджет-пара в верхней части первой страницы: часы/дата и погода. */
 @Composable
 private fun HomeWidgets() {
-    var now by remember { mutableStateOf(Date()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            now = Date()
-            delay(1000L)
-        }
-    }
-    val locale = Locale("ru")
-    val time = SimpleDateFormat("H:mm", locale).format(now)
-    val weekday = SimpleDateFormat("EEEE", locale).format(now)
-        .replaceFirstChar { it.uppercase(locale) }
-    val date = SimpleDateFormat("d MMMM", locale).format(now)
+    val now by rememberCurrentTime()
+    val time = now.asIosClock()
+    val weekday = now.asIosDate("EEEE")
+    val date = now.asIosDate("d MMMM")
 
     Row(
         Modifier
@@ -266,7 +262,11 @@ private fun Dock(vm: EmulatorViewModel) {
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         vm.dockApps.forEach { app ->
-            DockIcon(app = app, onTap = { center -> vm.openApp(app.id, center) })
+            DockIcon(
+                app = app,
+                badge = vm.badgeFor(app.id),
+                onTap = { center -> vm.openApp(app.id, center) }
+            )
         }
     }
 }
@@ -275,6 +275,7 @@ private fun Dock(vm: EmulatorViewModel) {
 @Composable
 private fun DockIcon(
     app: com.fable5.iosemulator.model.IosApp,
+    badge: Int?,
     onTap: (Offset) -> Unit
 ) {
     val interaction = remember { MutableInteractionSource() }
@@ -300,7 +301,7 @@ private fun DockIcon(
             }
             .clickable(interactionSource = interaction, indication = null) { onTap(center) }
     ) {
-        AppIconVisual(app)
+        AppIconVisual(app, badge = badge)
     }
 }
 

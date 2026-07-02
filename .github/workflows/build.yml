@@ -1,5 +1,5 @@
-# Сборка debug-APK в облаке GitHub Actions.
-# Готовый APK появляется в артефактах каждого запуска workflow.
+# Проверка и сборка debug-APK в облаке GitHub Actions.
+# Порядок: lint → юнит-тесты → APK; готовый APK — в артефактах запуска.
 name: Build APK
 
 on:
@@ -23,13 +23,27 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Lint
+        run: ./gradlew lintDebug --no-daemon
+
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest --no-daemon
+
       - name: Build debug APK
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: fable5-ios-emulator-debug
           path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload lint report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results-debug.html

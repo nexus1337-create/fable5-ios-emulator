@@ -169,7 +169,7 @@ fun EmulatorRoot(vm: EmulatorViewModel) {
                 enter = fadeIn(tween(200)),
                 exit = fadeOut(tween(160))
             ) {
-                SpotlightOverlay(vm) { vm.spotlightVisible = false }
+                SpotlightOverlay(vm) { vm.hideSpotlight() }
             }
 
             // ---------- 3.5 Пункт управления ----------
@@ -184,7 +184,7 @@ fun EmulatorRoot(vm: EmulatorViewModel) {
                     animationSpec = tween(220, easing = FastOutSlowInEasing)
                 ) + fadeOut(tween(180))
             ) {
-                ControlCenterOverlay(vm) { vm.controlCenterVisible = false }
+                ControlCenterOverlay(vm) { vm.hideControlCenter() }
             }
 
             // ---------- 3.7 Экран блокировки ----------
@@ -236,7 +236,7 @@ fun EmulatorRoot(vm: EmulatorViewModel) {
                 onShortSwipeUp = {
                     when {
                         vm.locked -> vm.unlock()
-                        vm.controlCenterVisible -> vm.controlCenterVisible = false
+                        vm.controlCenterVisible -> vm.hideControlCenter()
                         vm.openedApp != null || vm.switcherVisible -> vm.goHome()
                         else -> vm.showSwitcher()
                     }
@@ -244,7 +244,7 @@ fun EmulatorRoot(vm: EmulatorViewModel) {
                 onLongSwipeUp = {
                     when {
                         vm.locked -> vm.unlock()
-                        vm.controlCenterVisible -> vm.controlCenterVisible = false
+                        vm.controlCenterVisible -> vm.hideControlCenter()
                         else -> vm.showSwitcher()
                     }
                 },
@@ -253,7 +253,9 @@ fun EmulatorRoot(vm: EmulatorViewModel) {
             )
 
             // ---------- 6. Жест Пункта управления ----------
-            // Свайп вниз от правого верхнего угла, как в iOS
+            // Свайп вниз от правого верхнего угла, как в iOS.
+            // Открываем по суммарному прогрессу жеста (в dp), а не по первому
+            // же движению — случайное касание угла больше не открывает шторку.
             if (!vm.locked && !vm.controlCenterVisible) {
                 Box(
                     Modifier
@@ -261,11 +263,15 @@ fun EmulatorRoot(vm: EmulatorViewModel) {
                         .fillMaxWidth(0.42f)
                         .height(44.dp)
                         .pointerInput(Unit) {
+                            val openThreshold = 48.dp.toPx()
+                            var totalDrag = 0f
                             detectVerticalDragGestures(
+                                onDragStart = { totalDrag = 0f },
                                 onVerticalDrag = { change, dragAmount ->
-                                    if (dragAmount > 10f) {
-                                        change.consume()
-                                        vm.controlCenterVisible = true
+                                    change.consume()
+                                    totalDrag += dragAmount
+                                    if (totalDrag > openThreshold) {
+                                        vm.showControlCenter()
                                     }
                                 }
                             )
@@ -280,9 +286,9 @@ fun EmulatorRoot(vm: EmulatorViewModel) {
                     vm.spotlightVisible
             ) {
                 when {
-                    vm.controlCenterVisible -> vm.controlCenterVisible = false
-                    vm.spotlightVisible -> vm.spotlightVisible = false
-                    vm.openedFolderKey != null -> vm.openedFolderKey = null
+                    vm.controlCenterVisible -> vm.hideControlCenter()
+                    vm.spotlightVisible -> vm.hideSpotlight()
+                    vm.openedFolderKey != null -> vm.closeFolder()
                     else -> vm.goHome()
                 }
             }

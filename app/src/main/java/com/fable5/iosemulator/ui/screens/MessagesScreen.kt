@@ -54,6 +54,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fable5.iosemulator.model.Conversation
 import com.fable5.iosemulator.ui.components.StatusBarHeight
 import com.fable5.iosemulator.ui.theme.IosBlue
 import com.fable5.iosemulator.ui.theme.IosBubbleGrayDark
@@ -95,6 +96,8 @@ fun MessagesScreen(vm: EmulatorViewModel) {
             ConversationList(vm) { selectedId = it }
         } else {
             val conversation = vm.conversations.first { it.id == conversationId }
+            // Открытый чат считается прочитанным — бейдж на иконке гаснет
+            LaunchedEffect(conversationId) { vm.markConversationRead(conversationId) }
             ChatScreen(vm, conversation) { selectedId = null }
         }
     }
@@ -161,6 +164,16 @@ private fun ConversationList(vm: EmulatorViewModel, onOpen: (Int) -> Unit) {
                         .padding(horizontal = 20.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Синяя точка непрочитанного диалога, как в iOS
+                    Box(
+                        Modifier
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (conversation.unread > 0) IosBlue else Color.Transparent
+                            )
+                    )
+                    Spacer(Modifier.width(8.dp))
                     // Аватар с первой буквой имени
                     Box(
                         Modifier
@@ -228,7 +241,7 @@ private fun ConversationList(vm: EmulatorViewModel, onOpen: (Int) -> Unit) {
 @Composable
 private fun ChatScreen(
     vm: EmulatorViewModel,
-    conversation: EmulatorViewModel.Conversation,
+    conversation: Conversation,
     onBack: () -> Unit
 ) {
     val dark = vm.darkTheme

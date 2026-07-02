@@ -8,11 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -28,10 +25,7 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.sin
@@ -127,13 +121,7 @@ fun PhotosIcon() {
 // ---------------------------------------------------------------
 @Composable
 fun ClockIcon() {
-    var now by remember { mutableStateOf(Calendar.getInstance()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            now = Calendar.getInstance()
-            delay(1000L)
-        }
-    }
+    val now by rememberCurrentTime()
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         Canvas(Modifier.fillMaxSize()) {
             val c = center
@@ -151,9 +139,9 @@ fun ClockIcon() {
                     )
                 }
             }
-            val hours = now.get(Calendar.HOUR)
-            val minutes = now.get(Calendar.MINUTE)
-            val seconds = now.get(Calendar.SECOND)
+            val hours = now.hour % 12
+            val minutes = now.minute
+            val seconds = now.second
 
             fun hand(angleDeg: Float, length: Float, width: Float, color: Color) {
                 val rad = Math.toRadians(angleDeg.toDouble() - 90.0)
@@ -181,9 +169,12 @@ fun ClockIcon() {
 // ---------------------------------------------------------------
 @Composable
 fun CalendarIcon(iconSize: Dp) {
-    val locale = Locale("ru")
-    val weekday = remember { SimpleDateFormat("EE", locale).format(Date()).uppercase(locale) }
-    val day = remember { SimpleDateFormat("d", locale).format(Date()) }
+    val now by rememberCurrentTime()
+    val locale = Locale.getDefault()
+    val weekday = remember(now.dayOfWeek) {
+        now.format(DateTimeFormatter.ofPattern("EE", locale)).uppercase(locale)
+    }
+    val day = now.dayOfMonth.toString()
     val scale = iconSize.value
     Column(
         Modifier.fillMaxSize().background(Color.White),
@@ -529,6 +520,199 @@ fun MessagesIcon() {
                 close()
             }
             drawPath(tail, Color.White)
+        }
+    }
+}
+
+// ---------------------------------------------------------------
+// Телефон: зелёный градиент и белая трубка
+// ---------------------------------------------------------------
+@Composable
+fun PhoneIcon() {
+    Box(
+        Modifier.fillMaxSize().background(
+            Brush.verticalGradient(listOf(Color(0xFF67E374), Color(0xFF12B72C)))
+        )
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            // Классическая трубка: две «чашки», соединённые дугой
+            val stroke = size.minDimension * 0.13f
+            rotate(degrees = -42f, pivot = center) {
+                val cup = Size(size.width * 0.17f, size.height * 0.15f)
+                drawRoundRect(
+                    color = Color.White,
+                    topLeft = Offset(center.x - size.width * 0.30f, center.y - cup.height * 0.5f),
+                    size = cup,
+                    cornerRadius = CornerRadius(cup.width * 0.45f)
+                )
+                drawRoundRect(
+                    color = Color.White,
+                    topLeft = Offset(center.x + size.width * 0.13f, center.y - cup.height * 0.5f),
+                    size = cup,
+                    cornerRadius = CornerRadius(cup.width * 0.45f)
+                )
+                // Дуга между чашками
+                drawArc(
+                    color = Color.White,
+                    startAngle = 180f,
+                    sweepAngle = 180f,
+                    useCenter = false,
+                    topLeft = Offset(center.x - size.width * 0.21f, center.y - size.height * 0.16f),
+                    size = Size(size.width * 0.42f, size.height * 0.36f),
+                    style = Stroke(width = stroke, cap = StrokeCap.Round)
+                )
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------
+// FaceTime: зелёный градиент и белая видеокамера
+// ---------------------------------------------------------------
+@Composable
+fun FaceTimeIcon() {
+    Box(
+        Modifier.fillMaxSize().background(
+            Brush.verticalGradient(listOf(Color(0xFF67E374), Color(0xFF12B72C)))
+        )
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            // Корпус камеры
+            drawRoundRect(
+                color = Color.White,
+                topLeft = Offset(size.width * 0.16f, size.height * 0.3f),
+                size = Size(size.width * 0.46f, size.height * 0.4f),
+                cornerRadius = CornerRadius(size.width * 0.1f)
+            )
+            // Объектив-«клин» справа
+            val wedge = Path().apply {
+                moveTo(size.width * 0.66f, size.height * 0.45f)
+                lineTo(size.width * 0.84f, size.height * 0.33f)
+                lineTo(size.width * 0.84f, size.height * 0.67f)
+                lineTo(size.width * 0.66f, size.height * 0.55f)
+                close()
+            }
+            drawPath(wedge, Color.White)
+        }
+    }
+}
+
+// ---------------------------------------------------------------
+// Музыка: красно-розовый градиент и белая нота
+// ---------------------------------------------------------------
+@Composable
+fun MusicIcon() {
+    Box(
+        Modifier.fillMaxSize().background(
+            Brush.verticalGradient(listOf(Color(0xFFFC5C7D), Color(0xFFEB2749)))
+        )
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            val stroke = size.minDimension * 0.055f
+            // Штили двойной ноты
+            drawLine(
+                Color.White,
+                start = Offset(size.width * 0.40f, size.height * 0.28f),
+                end = Offset(size.width * 0.40f, size.height * 0.66f),
+                strokeWidth = stroke, cap = StrokeCap.Round
+            )
+            drawLine(
+                Color.White,
+                start = Offset(size.width * 0.70f, size.height * 0.24f),
+                end = Offset(size.width * 0.70f, size.height * 0.60f),
+                strokeWidth = stroke, cap = StrokeCap.Round
+            )
+            // Перекладина
+            val beam = Path().apply {
+                moveTo(size.width * 0.375f, size.height * 0.28f)
+                lineTo(size.width * 0.725f, size.height * 0.22f)
+                lineTo(size.width * 0.725f, size.height * 0.32f)
+                lineTo(size.width * 0.375f, size.height * 0.38f)
+                close()
+            }
+            drawPath(beam, Color.White)
+            // Головки нот
+            drawOval(
+                Color.White,
+                topLeft = Offset(size.width * 0.28f, size.height * 0.60f),
+                size = Size(size.width * 0.155f, size.height * 0.115f)
+            )
+            drawOval(
+                Color.White,
+                topLeft = Offset(size.width * 0.58f, size.height * 0.545f),
+                size = Size(size.width * 0.155f, size.height * 0.115f)
+            )
+        }
+    }
+}
+
+// ---------------------------------------------------------------
+// Подкасты: фиолетовый градиент, «вещающий» силуэт в кольцах
+// ---------------------------------------------------------------
+@Composable
+fun PodcastsIcon() {
+    Box(
+        Modifier.fillMaxSize().background(
+            Brush.verticalGradient(listOf(Color(0xFFC97BF2), Color(0xFF8944AB)))
+        )
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            val c = Offset(center.x, size.height * 0.52f)
+            val stroke = size.minDimension * 0.05f
+            // Кольца-волны
+            listOf(0.40f, 0.30f).forEach { fr ->
+                drawArc(
+                    color = Color.White.copy(alpha = 0.85f),
+                    startAngle = 210f,
+                    sweepAngle = 120f,
+                    useCenter = false,
+                    topLeft = Offset(c.x - size.width * fr, c.y - size.height * fr),
+                    size = Size(size.width * fr * 2f, size.height * fr * 2f),
+                    style = Stroke(width = stroke, cap = StrokeCap.Round)
+                )
+                drawArc(
+                    color = Color.White.copy(alpha = 0.85f),
+                    startAngle = 30f,
+                    sweepAngle = 120f,
+                    useCenter = false,
+                    topLeft = Offset(c.x - size.width * fr, c.y - size.height * fr),
+                    size = Size(size.width * fr * 2f, size.height * fr * 2f),
+                    style = Stroke(width = stroke, cap = StrokeCap.Round)
+                )
+            }
+            // Голова и «тело» микрофонного силуэта
+            drawCircle(Color.White, size.width * 0.09f, Offset(c.x, c.y - size.height * 0.05f))
+            drawRoundRect(
+                color = Color.White,
+                topLeft = Offset(c.x - size.width * 0.075f, c.y + size.height * 0.055f),
+                size = Size(size.width * 0.15f, size.height * 0.22f),
+                cornerRadius = CornerRadius(size.width * 0.075f)
+            )
+        }
+    }
+}
+
+// ---------------------------------------------------------------
+// Здоровье: белый фон и розово-красное сердце
+// ---------------------------------------------------------------
+@Composable
+fun HealthIcon() {
+    Box(Modifier.fillMaxSize().background(Color.White)) {
+        Canvas(Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            val heart = Path().apply {
+                moveTo(w * 0.5f, h * 0.78f)
+                cubicTo(w * 0.14f, h * 0.52f, w * 0.20f, h * 0.22f, w * 0.42f, h * 0.26f)
+                cubicTo(w * 0.47f, h * 0.27f, w * 0.5f, h * 0.33f, w * 0.5f, h * 0.35f)
+                cubicTo(w * 0.5f, h * 0.33f, w * 0.53f, h * 0.27f, w * 0.58f, h * 0.26f)
+                cubicTo(w * 0.80f, h * 0.22f, w * 0.86f, h * 0.52f, w * 0.5f, h * 0.78f)
+                close()
+            }
+            drawPath(
+                heart,
+                Brush.verticalGradient(listOf(Color(0xFFFF5E8A), Color(0xFFFF2D55)))
+            )
         }
     }
 }

@@ -268,24 +268,24 @@ private fun ConnectivityModule(vm: EmulatorViewModel) {
                 icon = Icons.Filled.AirplanemodeActive,
                 active = vm.airplaneMode,
                 activeColor = IosOrange
-            ) { vm.airplaneMode = !vm.airplaneMode }
+            ) { vm.setAirplaneModeEnabled(!vm.airplaneMode) }
             CcRoundButton(
                 icon = Icons.Filled.SignalCellularAlt,
                 active = vm.cellularData && !vm.airplaneMode,
                 activeColor = IosGreen
-            ) { vm.cellularData = !vm.cellularData }
+            ) { vm.setCellularDataEnabled(!vm.cellularData) }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             CcRoundButton(
                 icon = Icons.Filled.Wifi,
                 active = vm.wifiEnabled && !vm.airplaneMode,
                 activeColor = IosBlue
-            ) { vm.wifiEnabled = !vm.wifiEnabled }
+            ) { vm.setWifiState(!vm.wifiEnabled) }
             CcRoundButton(
                 icon = Icons.Filled.Bluetooth,
                 active = vm.bluetoothEnabled,
                 activeColor = IosBlue
-            ) { vm.bluetoothEnabled = !vm.bluetoothEnabled }
+            ) { vm.setBluetoothState(!vm.bluetoothEnabled) }
         }
     }
 }

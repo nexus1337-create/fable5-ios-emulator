@@ -21,6 +21,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -28,7 +30,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.fable5.iosemulator.model.AppBadges
 import com.fable5.iosemulator.model.AppId
 import com.fable5.iosemulator.model.HomeItem
 import com.fable5.iosemulator.model.IosApp
@@ -36,12 +37,17 @@ import com.fable5.iosemulator.model.IosApp
 /**
  * Визуал иконки приложения: скруглённый квадрат
  * (радиус ≈ 22,37% стороны — как суперэллипс иконок iOS).
- * Самые узнаваемые иконки нарисованы вручную на Canvas (IosAppIcons.kt),
- * остальные — Material-вектор на вертикальном градиенте.
+ * Все стандартные приложения нарисованы вручную на Canvas
+ * (IosAppIcons.kt) в стиле оригинальных иконок iOS; для новых
+ * AppId без своей отрисовки остаётся Material-фолбэк.
  */
 @Composable
-fun AppIconVisual(app: IosApp, size: Dp = 60.dp, showBadge: Boolean = false) {
-    Box(Modifier.size(size)) {
+fun AppIconVisual(app: IosApp, size: Dp = 60.dp, badge: Int? = null) {
+    Box(
+        Modifier
+            .size(size)
+            .semantics { contentDescription = app.name }
+    ) {
         Box(
             modifier = Modifier
                 .size(size)
@@ -49,27 +55,30 @@ fun AppIconVisual(app: IosApp, size: Dp = 60.dp, showBadge: Boolean = false) {
             contentAlignment = Alignment.Center
         ) {
             when (app.id) {
+                AppId.PHONE -> PhoneIcon()
                 AppId.SAFARI -> SafariIcon()
-                AppId.PHOTOS -> PhotosIcon()
-                AppId.CLOCK -> ClockIcon()
-                AppId.CALENDAR -> CalendarIcon(size)
-                AppId.NOTES -> NotesIcon()
-                AppId.CALCULATOR -> CalculatorIcon()
-                AppId.APP_STORE -> AppStoreIcon()
-                AppId.MAIL -> MailIcon()
-                AppId.WEATHER -> WeatherIcon()
-                AppId.MAPS -> MapsIcon()
-                AppId.WALLET -> WalletIcon()
-                AppId.STOCKS -> StocksIcon()
-                AppId.CAMERA -> CameraIcon()
-                AppId.SETTINGS -> SettingsGearIcon()
                 AppId.MESSAGES -> MessagesIcon()
-                else -> DefaultAppIcon(app, size)
+                AppId.PHOTOS -> PhotosIcon()
+                AppId.SETTINGS -> SettingsGearIcon()
+                AppId.CAMERA -> CameraIcon()
+                AppId.MAIL -> MailIcon()
+                AppId.MUSIC -> MusicIcon()
+                AppId.MAPS -> MapsIcon()
+                AppId.NOTES -> NotesIcon()
+                AppId.CALENDAR -> CalendarIcon(size)
+                AppId.WEATHER -> WeatherIcon()
+                AppId.WALLET -> WalletIcon()
+                AppId.FACETIME -> FaceTimeIcon()
+                AppId.APP_STORE -> AppStoreIcon()
+                AppId.CLOCK -> ClockIcon()
+                AppId.HEALTH -> HealthIcon()
+                AppId.CALCULATOR -> CalculatorIcon()
+                AppId.STOCKS -> StocksIcon()
+                AppId.PODCASTS -> PodcastsIcon()
             }
         }
         // Красный бейдж непрочитанных, как в iOS
-        val badgeCount = if (showBadge) AppBadges.counts[app.id] else null
-        if (badgeCount != null) {
+        if (badge != null && badge > 0) {
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -80,31 +89,13 @@ fun AppIconVisual(app: IosApp, size: Dp = 60.dp, showBadge: Boolean = false) {
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = badgeCount.toString(),
+                    text = badge.toString(),
                     color = Color.White,
                     fontSize = (size.value * 0.2f).sp,
                     fontWeight = FontWeight.Medium
                 )
             }
         }
-    }
-}
-
-/** Иконка по умолчанию: вертикальный градиент + векторный символ. */
-@Composable
-private fun DefaultAppIcon(app: IosApp, size: Dp) {
-    Box(
-        modifier = Modifier
-            .size(size)
-            .background(Brush.verticalGradient(app.gradient)),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = app.icon,
-            contentDescription = app.name,
-            tint = app.iconTint,
-            modifier = Modifier.size(size * 0.52f)
-        )
     }
 }
 
@@ -115,7 +106,8 @@ fun FolderIconVisual(folder: HomeItem.Folder, size: Dp = 60.dp) {
         modifier = Modifier
             .size(size)
             .clip(RoundedCornerShape(size * 0.2237f))
-            .background(Color.White.copy(alpha = 0.28f)),
+            .background(Color.White.copy(alpha = 0.28f))
+            .semantics { contentDescription = folder.name },
         contentAlignment = Alignment.Center
     ) {
         val mini = size * 0.22f
@@ -135,10 +127,15 @@ fun FolderIconVisual(folder: HomeItem.Folder, size: Dp = 60.dp) {
  * с лёгкой тенью, чтобы читалась на любых обоях.
  */
 @Composable
-fun HomeItemView(item: HomeItem, iconSize: Dp = 60.dp, labelColor: Color = Color.White) {
+fun HomeItemView(
+    item: HomeItem,
+    iconSize: Dp = 60.dp,
+    labelColor: Color = Color.White,
+    badgeFor: (AppId) -> Int? = { null }
+) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         when (item) {
-            is HomeItem.App -> AppIconVisual(item.app, iconSize, showBadge = true)
+            is HomeItem.App -> AppIconVisual(item.app, iconSize, badge = badgeFor(item.app.id))
             is HomeItem.Folder -> FolderIconVisual(item, iconSize)
         }
         Spacer(Modifier.height(5.dp))

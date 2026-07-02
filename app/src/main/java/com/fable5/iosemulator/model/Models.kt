@@ -1,30 +1,6 @@
 package com.fable5.iosemulator.model
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.Apps
-import androidx.compose.material.icons.filled.Calculate
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.ChatBubble
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Explore
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FilterVintage
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.NearMe
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Podcasts
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.ShowChart
-import androidx.compose.material.icons.filled.StickyNote2
-import androidx.compose.material.icons.filled.Videocam
-import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import com.fable5.iosemulator.ui.theme.IosBlue
-import com.fable5.iosemulator.ui.theme.IosRed
 
 /** Идентификаторы всех приложений внутри эмулятора. */
 enum class AppId {
@@ -34,15 +10,13 @@ enum class AppId {
 }
 
 /**
- * Описание одного приложения: имя, иконка (Material-вектор, стилизованный
- * под SF Symbols) и градиент подложки иконки — как на домашнем экране iOS.
+ * Описание одного приложения. Сама иконка рисуется вручную на Canvas
+ * (ui/components/IosAppIcons.kt) — по своей отрисовке на каждый AppId,
+ * максимально близко к оригинальным иконкам iOS.
  */
 data class IosApp(
     val id: AppId,
-    val name: String,
-    val icon: ImageVector,
-    val iconTint: Color = Color.White,
-    val gradient: List<Color>
+    val name: String
 )
 
 /** Элемент домашнего экрана: приложение или папка. */
@@ -62,55 +36,106 @@ sealed class HomeItem {
     }
 }
 
+/** Одно мягкое цветное «пятно» mesh-градиента (доли ширины/высоты и радиус). */
+data class WallpaperBlob(
+    val x: Float,
+    val y: Float,
+    val radius: Float,
+    val color: Color,
+    val alpha: Float = 0.55f
+)
+
 /**
- * Обои домашнего экрана: вертикальный базовый градиент + цветные
- * «пятна» (имитация mesh-градиентов стандартных обоев iOS 18).
+ * Обои домашнего экрана: вертикальный базовый градиент + индивидуальная
+ * раскладка цветных «пятен» — имитация mesh-градиентов стандартных
+ * обоев iOS 18/26, у каждого пресета своя композиция.
  */
 data class Wallpaper(
     val name: String,
     val base: List<Color>,
-    val blobs: List<Color>
+    val blobs: List<WallpaperBlob>
 )
-
-/** Бейджи непрочитанных на иконках (как в iOS). */
-object AppBadges {
-    val counts: Map<AppId, Int> = mapOf(
-        AppId.MESSAGES to 2,
-        AppId.MAIL to 5
-    )
-}
 
 object Wallpapers {
     val all = listOf(
+        // Классические тёплые «переливы шёлка» (iOS 18 default)
         Wallpaper(
             "Шёлк",
             base = listOf(Color(0xFF3E3730), Color(0xFF8F8478), Color(0xFFD8CDC0)),
-            blobs = listOf(Color(0xFFEFE0C8), Color(0xFF9AA6B5), Color(0xFFC2A98C), Color(0xFF60564A))
+            blobs = listOf(
+                WallpaperBlob(0.20f, 0.15f, 0.75f, Color(0xFFEFE0C8), 0.60f),
+                WallpaperBlob(0.85f, 0.30f, 0.70f, Color(0xFF9AA6B5), 0.45f),
+                WallpaperBlob(0.40f, 0.58f, 0.90f, Color(0xFFC2A98C), 0.55f),
+                WallpaperBlob(0.80f, 0.85f, 0.75f, Color(0xFF60564A), 0.65f),
+                WallpaperBlob(0.10f, 0.90f, 0.65f, Color(0xFFEFE0C8), 0.35f)
+            )
         ),
+        // Фирменные обои Fable: глубокий космос с неоновыми всполохами
         Wallpaper(
             "Fable",
             base = listOf(Color(0xFF0A1442), Color(0xFF35156B), Color(0xFF6A2C91)),
-            blobs = listOf(Color(0xFFFF6AC1), Color(0xFF45C4FF), Color(0xFFFF9F5A), Color(0xFF7B61FF))
+            blobs = listOf(
+                WallpaperBlob(0.75f, 0.12f, 0.65f, Color(0xFFFF6AC1), 0.55f),
+                WallpaperBlob(0.15f, 0.35f, 0.80f, Color(0xFF45C4FF), 0.45f),
+                WallpaperBlob(0.60f, 0.62f, 0.85f, Color(0xFF7B61FF), 0.55f),
+                WallpaperBlob(0.90f, 0.80f, 0.60f, Color(0xFFFF9F5A), 0.45f),
+                WallpaperBlob(0.25f, 0.90f, 0.70f, Color(0xFFFF6AC1), 0.35f)
+            )
         ),
+        // «Закат» — тёплый градиент к горизонту, как стоковые Sunset
         Wallpaper(
             "Закат",
             base = listOf(Color(0xFF23104F), Color(0xFF7A2E62), Color(0xFFDF6B4F)),
-            blobs = listOf(Color(0xFFFF4E8E), Color(0xFFFFC371), Color(0xFFFF7A59), Color(0xFF8E4EC6))
+            blobs = listOf(
+                WallpaperBlob(0.50f, 0.85f, 0.95f, Color(0xFFFFC371), 0.65f),
+                WallpaperBlob(0.20f, 0.65f, 0.70f, Color(0xFFFF7A59), 0.55f),
+                WallpaperBlob(0.85f, 0.55f, 0.65f, Color(0xFFFF4E8E), 0.50f),
+                WallpaperBlob(0.35f, 0.20f, 0.75f, Color(0xFF8E4EC6), 0.45f)
+            )
         ),
+        // «Лагуна» — бирюзовая вода (стоковые Beach/Lagoon)
         Wallpaper(
             "Лагуна",
             base = listOf(Color(0xFF04293F), Color(0xFF0A4D6E), Color(0xFF0E7490)),
-            blobs = listOf(Color(0xFF34D3C8), Color(0xFF7DE1FF), Color(0xFF1F6FEB), Color(0xFF37F5C6))
+            blobs = listOf(
+                WallpaperBlob(0.30f, 0.25f, 0.80f, Color(0xFF7DE1FF), 0.45f),
+                WallpaperBlob(0.80f, 0.45f, 0.75f, Color(0xFF34D3C8), 0.55f),
+                WallpaperBlob(0.45f, 0.75f, 0.90f, Color(0xFF37F5C6), 0.45f),
+                WallpaperBlob(0.10f, 0.60f, 0.60f, Color(0xFF1F6FEB), 0.50f)
+            )
         ),
+        // «Аврора» — северное сияние на тёмном небе
         Wallpaper(
             "Аврора",
             base = listOf(Color(0xFF061A2B), Color(0xFF0D3242), Color(0xFF123B2F)),
-            blobs = listOf(Color(0xFF3EE58F), Color(0xFF37C3FF), Color(0xFF7B61FF), Color(0xFF1FE0C4))
+            blobs = listOf(
+                WallpaperBlob(0.30f, 0.12f, 0.85f, Color(0xFF3EE58F), 0.50f),
+                WallpaperBlob(0.75f, 0.30f, 0.75f, Color(0xFF37C3FF), 0.45f),
+                WallpaperBlob(0.50f, 0.55f, 0.80f, Color(0xFF1FE0C4), 0.40f),
+                WallpaperBlob(0.20f, 0.80f, 0.70f, Color(0xFF7B61FF), 0.40f)
+            )
         ),
+        // «Ирис» — сине-фиолетовый градиент, как обои iOS 26
+        Wallpaper(
+            "Ирис",
+            base = listOf(Color(0xFF101B4D), Color(0xFF3A2D8F), Color(0xFF7A55C9)),
+            blobs = listOf(
+                WallpaperBlob(0.70f, 0.18f, 0.70f, Color(0xFF9C7DFF), 0.55f),
+                WallpaperBlob(0.20f, 0.40f, 0.80f, Color(0xFF4A8DFF), 0.45f),
+                WallpaperBlob(0.60f, 0.72f, 0.85f, Color(0xFFCE8FFF), 0.45f),
+                WallpaperBlob(0.90f, 0.90f, 0.60f, Color(0xFF6BE1FF), 0.40f)
+            )
+        ),
+        // «Графит» — сдержанный тёмный монохром
         Wallpaper(
             "Графит",
             base = listOf(Color(0xFF0B0C0F), Color(0xFF1B1D22), Color(0xFF2E3138)),
-            blobs = listOf(Color(0xFF5A5F6A), Color(0xFF8A93A5), Color(0xFF3C414B), Color(0xFF6E7684))
+            blobs = listOf(
+                WallpaperBlob(0.15f, 0.18f, 0.70f, Color(0xFF5A5F6A), 0.50f),
+                WallpaperBlob(0.85f, 0.35f, 0.75f, Color(0xFF8A93A5), 0.40f),
+                WallpaperBlob(0.45f, 0.65f, 0.85f, Color(0xFF3C414B), 0.55f),
+                WallpaperBlob(0.80f, 0.90f, 0.70f, Color(0xFF6E7684), 0.45f)
+            )
         )
     )
 }
@@ -118,43 +143,27 @@ object Wallpapers {
 /** Каталог всех приложений эмулятора. */
 object AppCatalog {
 
-    private val white = Color.White
-    private val lightBg = listOf(Color(0xFFFFFFFF), Color(0xFFE9E9EE))
-    private val darkBg = listOf(Color(0xFF3A3A3C), Color(0xFF111113))
-
     val apps: Map<AppId, IosApp> = listOf(
-        IosApp(AppId.PHONE, "Телефон", Icons.Filled.Phone, white,
-            listOf(Color(0xFF67E374), Color(0xFF12B72C))),
-        IosApp(AppId.SAFARI, "Safari", Icons.Filled.Explore, IosBlue, lightBg),
-        IosApp(AppId.MESSAGES, "Сообщения", Icons.Filled.ChatBubble, white,
-            listOf(Color(0xFF6BE07A), Color(0xFF15BD31))),
-        IosApp(AppId.PHOTOS, "Фото", Icons.Filled.FilterVintage, Color(0xFFE8467C), lightBg),
-        IosApp(AppId.SETTINGS, "Настройки", Icons.Filled.Settings, Color(0xFF4B4E57),
-            listOf(Color(0xFFD9DADF), Color(0xFF9EA1A8))),
-        IosApp(AppId.CAMERA, "Камера", Icons.Filled.CameraAlt, Color(0xFF3A3A3C),
-            listOf(Color(0xFFE5E5EA), Color(0xFFB9BAC0))),
-        IosApp(AppId.MAIL, "Почта", Icons.Filled.Email, white,
-            listOf(Color(0xFF6FC5FF), Color(0xFF1D77EF))),
-        IosApp(AppId.MUSIC, "Музыка", Icons.Filled.MusicNote, white,
-            listOf(Color(0xFFFC5C7D), Color(0xFFEB2749))),
-        IosApp(AppId.MAPS, "Карты", Icons.Filled.NearMe, white,
-            listOf(Color(0xFF6BD5FA), Color(0xFF2E9BF0))),
-        IosApp(AppId.NOTES, "Заметки", Icons.Filled.StickyNote2, Color(0xFFFFB300), lightBg),
-        IosApp(AppId.CALENDAR, "Календарь", Icons.Filled.CalendarMonth, IosRed, lightBg),
-        IosApp(AppId.WEATHER, "Погода", Icons.Filled.WbSunny, Color(0xFFFFD60A),
-            listOf(Color(0xFF54A8F5), Color(0xFF1B6DE0))),
-        IosApp(AppId.WALLET, "Wallet", Icons.Filled.AccountBalanceWallet, white, darkBg),
-        IosApp(AppId.FACETIME, "FaceTime", Icons.Filled.Videocam, white,
-            listOf(Color(0xFF67E374), Color(0xFF12B72C))),
-        IosApp(AppId.APP_STORE, "App Store", Icons.Filled.Apps, white,
-            listOf(Color(0xFF41C8F5), Color(0xFF1470E1))),
-        IosApp(AppId.CLOCK, "Часы", Icons.Filled.AccessTime, white, darkBg),
-        IosApp(AppId.HEALTH, "Здоровье", Icons.Filled.Favorite, Color(0xFFFF2D55), lightBg),
-        IosApp(AppId.CALCULATOR, "Калькулятор", Icons.Filled.Calculate, white,
-            listOf(Color(0xFF48484A), Color(0xFF1C1C1E))),
-        IosApp(AppId.STOCKS, "Акции", Icons.Filled.ShowChart, white, darkBg),
-        IosApp(AppId.PODCASTS, "Подкасты", Icons.Filled.Podcasts, white,
-            listOf(Color(0xFFC97BF2), Color(0xFF8944AB)))
+        IosApp(AppId.PHONE, "Телефон"),
+        IosApp(AppId.SAFARI, "Safari"),
+        IosApp(AppId.MESSAGES, "Сообщения"),
+        IosApp(AppId.PHOTOS, "Фото"),
+        IosApp(AppId.SETTINGS, "Настройки"),
+        IosApp(AppId.CAMERA, "Камера"),
+        IosApp(AppId.MAIL, "Почта"),
+        IosApp(AppId.MUSIC, "Музыка"),
+        IosApp(AppId.MAPS, "Карты"),
+        IosApp(AppId.NOTES, "Заметки"),
+        IosApp(AppId.CALENDAR, "Календарь"),
+        IosApp(AppId.WEATHER, "Погода"),
+        IosApp(AppId.WALLET, "Wallet"),
+        IosApp(AppId.FACETIME, "FaceTime"),
+        IosApp(AppId.APP_STORE, "App Store"),
+        IosApp(AppId.CLOCK, "Часы"),
+        IosApp(AppId.HEALTH, "Здоровье"),
+        IosApp(AppId.CALCULATOR, "Калькулятор"),
+        IosApp(AppId.STOCKS, "Акции"),
+        IosApp(AppId.PODCASTS, "Подкасты")
     ).associateBy { it.id }
 
     operator fun get(id: AppId): IosApp = apps.getValue(id)

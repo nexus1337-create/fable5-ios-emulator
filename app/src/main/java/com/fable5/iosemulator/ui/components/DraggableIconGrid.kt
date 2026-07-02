@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.fable5.iosemulator.model.AppId
 import com.fable5.iosemulator.model.HomeItem
 import kotlin.math.hypot
 import kotlin.math.roundToInt
@@ -64,7 +65,8 @@ fun DraggableIconGrid(
     onItemTap: (index: Int, center: Offset) -> Unit,
     modifier: Modifier = Modifier,
     columns: Int = 4,
-    cellHeight: Dp = 100.dp
+    cellHeight: Dp = 100.dp,
+    badgeFor: (AppId) -> Int? = { null }
 ) {
     val currentOnMove by rememberUpdatedState(onMove)
     val currentOnMerge by rememberUpdatedState(onMerge)
@@ -215,7 +217,7 @@ fun DraggableIconGrid(
                                 indication = null
                             ) { currentOnTap(index, itemCenter) }
                         ) {
-                            HomeItemView(item)
+                            HomeItemView(item, badgeFor = badgeFor)
                         }
                     }
                 }

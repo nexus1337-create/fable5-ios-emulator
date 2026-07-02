@@ -14,11 +14,7 @@ import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -29,10 +25,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 /** Высота статус-бара iPhone с Dynamic Island. */
 val StatusBarHeight: Dp = 54.dp
@@ -40,7 +32,8 @@ val StatusBarHeight: Dp = 54.dp
 /**
  * Точная имитация статус-бара iOS: время слева,
  * сотовый сигнал / Wi-Fi / батарея справа. Центр остаётся
- * свободным под Dynamic Island.
+ * свободным под Dynamic Island. Показывает реальный заряд
+ * устройства, а не захардкоженное значение.
  */
 @Composable
 fun IosStatusBar(
@@ -49,14 +42,8 @@ fun IosStatusBar(
     wifiEnabled: Boolean,
     modifier: Modifier = Modifier
 ) {
-    // Живое время, обновляется каждую секунду
-    var time by remember { mutableStateOf(currentTime()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            time = currentTime()
-            delay(1000L)
-        }
-    }
+    val now by rememberCurrentTime()
+    val batteryLevel by rememberBatteryLevel()
 
     Row(
         modifier = modifier
@@ -66,7 +53,7 @@ fun IosStatusBar(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = time,
+            text = now.asIosClock(),
             color = contentColor,
             fontSize = 17.sp,
             fontWeight = FontWeight.SemiBold
@@ -92,7 +79,7 @@ fun IosStatusBar(
             }
         }
         Spacer(Modifier.width(7.dp))
-        BatteryIndicator(contentColor, level = 0.82f)
+        BatteryIndicator(contentColor, level = batteryLevel)
     }
 }
 
@@ -146,6 +133,3 @@ private fun BatteryIndicator(color: Color, level: Float) {
         )
     }
 }
-
-private fun currentTime(): String =
-    SimpleDateFormat("H:mm", Locale.getDefault()).format(Date())
